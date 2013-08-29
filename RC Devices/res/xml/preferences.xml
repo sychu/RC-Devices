@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen
+  xmlns:android="http://schemas.android.com/apk/res/android">
+    <EditTextPreference android:key="bt-address" android:title="@string/device_address" android:defaultValue="00:15:FF:F3:D4:1D"></EditTextPreference>
+</PreferenceScreen>

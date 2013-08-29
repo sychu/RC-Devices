@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="app_name">RC Devices</string>
+    <string name="action_settings">Ustawienia</string>
+    <string name="servo_angle">Kąt serwa:</string>
+    <string name="azimuth">Azymut:</string>
+    <string name="device_address">Adres urządzenia</string>
+    <string name="link_with_azimuth">Połącz z azymutem</string>
+
+</resources>
