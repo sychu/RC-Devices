@@ -177,6 +177,10 @@ public class MainActivity extends Activity implements OnSeekBarChangeListener, O
 		protected void onCreate(Bundle savedInstanceState) {
 			super.onCreate(savedInstanceState);
 			setContentView(R.layout.activity_main);
+			
+		    btAdapter = BluetoothAdapter.getDefaultAdapter();
+		    checkBTState();
+			
 			bar = (SeekBar)findViewById(R.id.seekBar1);
 			bar.setOnSeekBarChangeListener(this);
 			angleValueText = (TextView)findViewById(R.id.servoValueText);
@@ -195,7 +199,8 @@ public class MainActivity extends Activity implements OnSeekBarChangeListener, O
 		SharedPreferences sharedPrefs = PreferenceManager.getDefaultSharedPreferences(this);
 		DEVICE_ADDRESS = sharedPrefs.getString("bt-address", "");
 		
-		Connect();
+		if(DEVICE_ADDRESS != "")
+			Connect();
 		mSensorManager.registerListener(this, mCompass, SensorManager.SENSOR_DELAY_UI);
 	}
 	
@@ -204,7 +209,9 @@ public class MainActivity extends Activity implements OnSeekBarChangeListener, O
 		// TODO Auto-generated method stub
 		super.onStop();
 		mSensorManager.unregisterListener(this);
-		Disconnect();
+		
+		if(DEVICE_ADDRESS != "")
+			Disconnect();
 	}
 	
 	@Override
@@ -219,7 +226,7 @@ public class MainActivity extends Activity implements OnSeekBarChangeListener, O
 			boolean fromUser) {
 		angle = progress;
 		angleValueText.setText(Integer.toString(progress));
-		sendData(Integer.toString(progress));
+		sendData("S#" + Integer.toString(progress) + ";");
 		// TODO Auto-generated method stub
 		
 	}

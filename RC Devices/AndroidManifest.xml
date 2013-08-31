@@ -8,8 +8,8 @@
         android:minSdkVersion="10"
         android:targetSdkVersion="10" />
     
-    <permission android:name="android.permission.BLUETOOTH" android:label="BLUETOOTH"></permission>
-	<permission android:name="android.permission.BLUETOOTH_ADMIN"></permission>
+    <uses-permission android:name="android.permission.BLUETOOTH" />
+    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
 
     <application
         android:allowBackup="true"
