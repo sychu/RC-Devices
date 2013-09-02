@@ -3,9 +3,10 @@
 
     <string name="app_name">RC Devices</string>
     <string name="action_settings">Ustawienia</string>
-    <string name="servo_angle">Kąt serwa:</string>
-    <string name="azimuth">Azymut:</string>
+    <string name="servo_angle">Kąt serwa: </string>
+    <string name="azimuth">Azymut: </string>
     <string name="device_address">Adres urządzenia</string>
     <string name="link_with_azimuth">Połącz z azymutem</string>
+    <string name="low_pass_filter">Filtr dolnoprzepustowy: </string>
 
 </resources>

@@ -3,9 +3,10 @@
 
     <string name="app_name">RC Devices</string>
     <string name="action_settings">Settings</string>
-    <string name="servo_angle">Servo Angle:</string>
-    <string name="azimuth">Azimuth:</string>
+    <string name="servo_angle">Servo Angle: </string>
+    <string name="azimuth">Azimuth: </string>
     <string name="device_address">Device address</string>
     <string name="link_with_azimuth">Link with azimuth</string>
+    <string name="low_pass_filter">Low pass filter: </string>
 
 </resources>

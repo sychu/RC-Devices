@@ -35,8 +35,9 @@ import android.widget.Toast;
 
 public class MainActivity extends Activity implements OnSeekBarChangeListener, OnCheckedChangeListener, SensorEventListener {
 
-	private SeekBar bar;
+	private SeekBar bar,bar2;
 	private TextView angleValueText;
+	private TextView lowFilterPassValueText;
 	private TextView azimuthValueText;
 	private CheckBox linkWithAzimuthCheckBox;
 	
@@ -56,6 +57,8 @@ public class MainActivity extends Activity implements OnSeekBarChangeListener, O
 	private int angle = 90;
 	private int refAzimuth = 0;
 	private int refAngle = 90;
+	private volatile float filterSensivity = 0.2f;
+	protected float[] accelVals = null;
 	
 	private BluetoothSocket createBluetoothSocket(BluetoothDevice device) throws IOException {
 	      if(Build.VERSION.SDK_INT >= 10){
@@ -94,6 +97,10 @@ public class MainActivity extends Activity implements OnSeekBarChangeListener, O
 	  }
 	  
 	  private void sendData(String message) {
+		  
+		if(!isConnected() )
+			return;
+		
 	    byte[] msgBuffer = message.getBytes();
 	  
 	    Log.d(TAG, "...Send data: " + message + "...");
@@ -110,6 +117,11 @@ public class MainActivity extends Activity implements OnSeekBarChangeListener, O
 	    }
 	  }
 
+	  private boolean _isConnected = false;
+	  
+	  private boolean isConnected() {
+		  return _isConnected;
+	  }
 	  
 	  private void Connect()
 	  {		    
@@ -149,13 +161,16 @@ public class MainActivity extends Activity implements OnSeekBarChangeListener, O
 		  
 		    try {
 		      outStream = btSocket.getOutputStream();
+		      _isConnected = true;
 		    } catch (IOException e) {
 		      errorExit("Fatal Error", "In onResume() and output stream creation failed:" + e.getMessage() + ".");
-		    }		    
+		    }	
+		    
 	  }
 	  
 	  
 	  private void Disconnect() {
+		  _isConnected = false;
 		    Log.d(TAG, "...Disconnecting...");
 		    
 		    if (outStream != null) {
@@ -181,10 +196,19 @@ public class MainActivity extends Activity implements OnSeekBarChangeListener, O
 		    btAdapter = BluetoothAdapter.getDefaultAdapter();
 		    checkBTState();
 			
-			bar = (SeekBar)findViewById(R.id.seekBar1);
-			bar.setOnSeekBarChangeListener(this);
+			
 			angleValueText = (TextView)findViewById(R.id.servoValueText);
 			azimuthValueText = (TextView)findViewById(R.id.azimuthValueText);
+			lowFilterPassValueText = (TextView)findViewById(R.id.lowPassFilterValueText);
+			lowFilterPassValueText.setText(String.format("%.2f", filterSensivity ));
+			
+			bar = (SeekBar)findViewById(R.id.seekBar1);
+			bar.setOnSeekBarChangeListener(this);
+			
+			bar2 = (SeekBar)findViewById(R.id.seekBar2);
+			bar2.setOnSeekBarChangeListener(this);
+			bar2.setProgress(  (int)(filterSensivity * 100) );
+			
 			linkWithAzimuthCheckBox = (CheckBox)findViewById(R.id.checkBox1);
 			linkWithAzimuthCheckBox.setOnCheckedChangeListener(this);
 			
@@ -201,7 +225,7 @@ public class MainActivity extends Activity implements OnSeekBarChangeListener, O
 		
 		if(DEVICE_ADDRESS != "")
 			Connect();
-		mSensorManager.registerListener(this, mCompass, SensorManager.SENSOR_DELAY_UI);
+		mSensorManager.registerListener(this, mCompass, SensorManager.SENSOR_DELAY_GAME);
 	}
 	
 	@Override
@@ -224,10 +248,21 @@ public class MainActivity extends Activity implements OnSeekBarChangeListener, O
 	@Override
 	public void onProgressChanged(SeekBar seekBar, int progress,
 			boolean fromUser) {
+		
+		if(seekBar.getId() == R.id.seekBar1) {
 		angle = progress;
 		angleValueText.setText(Integer.toString(progress));
 		sendData("S#" + Integer.toString(progress) + ";");
 		// TODO Auto-generated method stub
+		}
+		else if(seekBar.getId() == R.id.seekBar2) {
+			
+			filterSensivity = progress / 100.0f;
+			lowFilterPassValueText.setText(String.format("%.2f", filterSensivity ));
+			
+			
+		}
+			
 		
 	}
 
@@ -252,25 +287,50 @@ public class MainActivity extends Activity implements OnSeekBarChangeListener, O
 	@Override
 	public void onSensorChanged(SensorEvent event) {
 		// TODO Auto-generated method stub
-		azimuth = Math.round(event.values[0]);
-		azimuthValueText.setText(Integer.toString(azimuth));
-		if(linkWithAzimuthCheckBox.isChecked()) {
-			int newAngle = azimuth - refAzimuth + refAngle;
+		
+		if (event.sensor.getType() == Sensor.TYPE_ORIENTATION) {
+			accelVals = lowPass( event.values, accelVals );
+		
+			azimuth = Math.round(accelVals[0]);
 			
-			if(newAngle < 0)
-				newAngle = newAngle + 360;
-			else if(newAngle > 360)
-				newAngle = newAngle - 360;
-			
-			if(newAngle > 270)
-				newAngle = 0;
-			else if(newAngle > 180)
-				newAngle = 180;
-			
-			bar.setProgress(newAngle);
+			azimuthValueText.setText(Integer.toString(azimuth));
+			if(linkWithAzimuthCheckBox.isChecked()) {
+				int newAngle = azimuth - refAzimuth + refAngle;
+				
+				if(newAngle < 0)
+					newAngle = newAngle + 360;
+				else if(newAngle > 360)
+					newAngle = newAngle - 360;
+				
+				if(newAngle > 270)
+					newAngle = 0;
+				else if(newAngle > 180)
+					newAngle = 180;
+				
+				bar.setProgress(newAngle);
+			}
 		}
 	}
 
+
+	protected float[] lowPass( float[] input, float[] output ) {
+	    
+		if ( output == null ) 
+		{
+			output = input.clone();
+	    	return output;
+	    	
+		}
+
+	    
+	    
+	    for ( int i=0; i<input.length; i++ ) {
+	        output[i] = output[i] + filterSensivity * (input[i] - output[i]);        
+	    }
+	    
+
+	    return output;
+	}
 
 	
 	@Override
