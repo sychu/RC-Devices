@@ -8,5 +8,9 @@
     <string name="device_address">Adres urządzenia</string>
     <string name="link_with_azimuth">Połącz z azymutem</string>
     <string name="low_pass_filter">Filtr dolnoprzepustowy: </string>
+    
+    <string name="throttle">Gaz:</string>
+    <string name="reverse">Wsteczny</string>
+    <string name="breaks">Hamulce</string>
 
 </resources>

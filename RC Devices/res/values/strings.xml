@@ -8,5 +8,9 @@
     <string name="device_address">Device address</string>
     <string name="link_with_azimuth">Link with azimuth</string>
     <string name="low_pass_filter">Low pass filter: </string>
-
+    <string name="servo_min">Servo min angle</string>
+    <string name="servo_max">Servo max angle</string>
+    <string name="throttle">Throttle:</string>
+    <string name="reverse">Rverse</string>
+    <string name="breaks">Breaks</string>
 </resources>

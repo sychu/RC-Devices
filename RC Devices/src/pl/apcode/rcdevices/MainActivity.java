@@ -35,13 +35,20 @@ import android.widget.Toast;
 
 public class MainActivity extends Activity implements OnSeekBarChangeListener, OnCheckedChangeListener, SensorEventListener {
 
-	private SeekBar bar,bar2;
+	private SeekBar bar,bar2,throttleBar;
 	private TextView angleValueText;
 	private TextView lowFilterPassValueText;
 	private TextView azimuthValueText;
+	private TextView throttleValueText; 
+	
 	private CheckBox linkWithAzimuthCheckBox;
+	private CheckBox reverseCheckBox, breaksCheckBox;
+	
 	
 	private String DEVICE_ADDRESS =  "";
+	private int angleMin = 0;
+	private int angleMax = 180;
+	
 	  // SPP UUID service
 	private static final UUID MY_UUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
 	private static final String TAG = "bluetooth1";
@@ -201,6 +208,7 @@ public class MainActivity extends Activity implements OnSeekBarChangeListener, O
 			azimuthValueText = (TextView)findViewById(R.id.azimuthValueText);
 			lowFilterPassValueText = (TextView)findViewById(R.id.lowPassFilterValueText);
 			lowFilterPassValueText.setText(String.format("%.2f", filterSensivity ));
+			throttleValueText = (TextView)findViewById(R.id.textViewThrottleValue);
 			
 			bar = (SeekBar)findViewById(R.id.seekBar1);
 			bar.setOnSeekBarChangeListener(this);
@@ -209,8 +217,17 @@ public class MainActivity extends Activity implements OnSeekBarChangeListener, O
 			bar2.setOnSeekBarChangeListener(this);
 			bar2.setProgress(  (int)(filterSensivity * 100) );
 			
+			throttleBar = (SeekBar)findViewById(R.id.seekBarMotor);
+			throttleBar.setOnSeekBarChangeListener(this);
+			
 			linkWithAzimuthCheckBox = (CheckBox)findViewById(R.id.checkBox1);
 			linkWithAzimuthCheckBox.setOnCheckedChangeListener(this);
+			
+			reverseCheckBox = (CheckBox)findViewById(R.id.checkBoxReverse);
+			reverseCheckBox.setOnCheckedChangeListener(this);
+			
+			breaksCheckBox = (CheckBox)findViewById(R.id.checkBoxBreak);
+			breaksCheckBox.setOnCheckedChangeListener(this);
 			
 		    mSensorManager = (SensorManager)getSystemService(SENSOR_SERVICE);
 		    mCompass = mSensorManager.getDefaultSensor(Sensor.TYPE_ORIENTATION);
@@ -222,6 +239,10 @@ public class MainActivity extends Activity implements OnSeekBarChangeListener, O
 		super.onStart();
 		SharedPreferences sharedPrefs = PreferenceManager.getDefaultSharedPreferences(this);
 		DEVICE_ADDRESS = sharedPrefs.getString("bt-address", "");
+		angleMin = Integer.parseInt(sharedPrefs.getString("servo-min", "0"));
+		angleMax = Integer.parseInt(sharedPrefs.getString("servo-max", "180"));
+		
+		angleValueText.setText(Integer.toString(calculateAngle(500)));
 		
 		if(DEVICE_ADDRESS != "")
 			Connect();
@@ -245,15 +266,24 @@ public class MainActivity extends Activity implements OnSeekBarChangeListener, O
 		return true;
 	}
 
+
+	
+	public int calculateAngle(int progValue) {
+		return (angleMax - angleMin) * progValue / 1000 + angleMin;	
+	}
+	
+	public int calculateThrottle(int progValue) {
+		return (progValue * 255)/1000;
+	}
+	
 	@Override
 	public void onProgressChanged(SeekBar seekBar, int progress,
 			boolean fromUser) {
 		
 		if(seekBar.getId() == R.id.seekBar1) {
-		angle = progress;
-		angleValueText.setText(Integer.toString(progress));
-		sendData("S#" + Integer.toString(progress) + ";");
-		// TODO Auto-generated method stub
+		angle = calculateAngle(progress);;
+		angleValueText.setText(Integer.toString(angle));
+		sendData("s#" + Integer.toString(angle) + ";");
 		}
 		else if(seekBar.getId() == R.id.seekBar2) {
 			
@@ -261,10 +291,27 @@ public class MainActivity extends Activity implements OnSeekBarChangeListener, O
 			lowFilterPassValueText.setText(String.format("%.2f", filterSensivity ));
 			
 			
+		}else if( seekBar.getId() == R.id.seekBarMotor) {
+			updateMotor();
 		}
 			
 		
 	}
+	
+	
+	public void updateMotor() {
+		int throttle = calculateThrottle(throttleBar.getProgress());
+		throttleValueText.setText(Integer.toString(throttle));
+		if(!breaksCheckBox.isChecked()) {
+			if(reverseCheckBox.isChecked())
+				sendData("r#" + Integer.toString(throttle) + ";");
+			else
+				sendData("f#" + Integer.toString(throttle) + ";");
+		} else
+			sendData("b;");
+		
+	}
+	
 
 	@Override
 	public void onStartTrackingTouch(SeekBar seekBar) {
@@ -336,10 +383,16 @@ public class MainActivity extends Activity implements OnSeekBarChangeListener, O
 	@Override
 	public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
 		// TODO Auto-generated method stub
-		if(isChecked) {
-			refAngle = angle;
-			refAzimuth = azimuth;
+		
+		if(buttonView.getId() == R.id.checkBox1) {
+			if(isChecked) {
+				refAngle = angle;
+				refAzimuth = azimuth;
+			}
+		} else {
+			updateMotor();
 		}
+		
 	}
 	
 	

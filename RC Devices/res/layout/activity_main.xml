@@ -29,8 +29,8 @@
         android:layout_alignLeft="@+id/textView1"
         android:layout_below="@+id/textView1"
         android:layout_marginTop="16dp"
-        android:max="180"
-        android:progress="90" />
+        android:max="1000"
+        android:progress="500" />
 
     <TextView
         android:id="@+id/azimuthValueText"
@@ -87,4 +87,49 @@
         android:layout_toRightOf="@+id/textView03"
         android:text="0.5" />
 
+    <TextView
+        android:id="@+id/textViewThrottle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignLeft="@+id/seekBar2"
+        android:layout_below="@+id/seekBar2"
+        android:layout_marginTop="50dp"
+        android:text="@string/throttle" />
+
+    <SeekBar
+        android:id="@+id/seekBarMotor"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignLeft="@+id/textViewThrottle"
+        android:layout_below="@+id/textViewThrottle"
+        android:layout_marginTop="14dp"
+        android:max="1000"
+        android:progress="0"
+        android:scrollbarAlwaysDrawVerticalTrack="false" />
+
+    <TextView
+        android:id="@+id/textViewThrottleValue"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_above="@+id/seekBarMotor"
+        android:layout_toRightOf="@+id/textViewThrottle"
+        android:text="0" />
+
+    <CheckBox
+        android:id="@+id/checkBoxReverse"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignLeft="@+id/seekBarMotor"
+        android:layout_alignParentBottom="true"
+        android:text="@string/reverse" />
+
+    <CheckBox
+        android:id="@+id/checkBoxBreak"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignBaseline="@+id/checkBoxReverse"
+        android:layout_alignBottom="@+id/checkBoxReverse"
+        android:layout_alignRight="@+id/seekBarMotor"
+        android:text="@string/breaks" />
+ 
 </RelativeLayout>

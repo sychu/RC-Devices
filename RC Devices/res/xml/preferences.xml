@@ -1,5 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <PreferenceScreen
   xmlns:android="http://schemas.android.com/apk/res/android">
-    <EditTextPreference android:key="bt-address" android:title="@string/device_address" android:defaultValue="00:15:FF:F3:D4:1D"></EditTextPreference>
+  	<!-- 
+  		HC-05 "00:15:FF:F3:D4:1D"  
+  		HC-06 "20:13:07:01:05:40"
+  	-->
+    <EditTextPreference android:key="bt-address" android:title="@string/device_address" android:defaultValue="20:13:07:01:05:40"></EditTextPreference>
+    <EditTextPreference android:key="servo-min" android:title="@string/servo_min" android:defaultValue="68" android:inputType="number"></EditTextPreference>
+    <EditTextPreference android:key="servo-max" android:title="@string/servo_max" android:defaultValue="115" android:inputType="number"></EditTextPreference>
 </PreferenceScreen>
