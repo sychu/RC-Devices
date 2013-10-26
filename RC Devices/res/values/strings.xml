@@ -13,4 +13,6 @@
     <string name="throttle">Throttle:</string>
     <string name="reverse">Rverse</string>
     <string name="breaks">Breaks</string>
+    <string name="connect">Connect</string>
+    <string name="disconnect">Disconnect</string>
 </resources>
