@@ -11,6 +11,8 @@
     
     <string name="throttle">Gaz:</string>
     <string name="reverse">Wsteczny</string>
-    <string name="breaks">Hamulce</string>
+    <string name="breaks">Hamulec</string>
 
+    <string name="btlink_connecting">Bluetooth - łączenie…</string>
+    <string name="btlink_connected">Bluetooth - połączono!</string>
 </resources>

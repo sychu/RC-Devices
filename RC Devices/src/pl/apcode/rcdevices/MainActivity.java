@@ -7,6 +7,7 @@ import java.util.UUID;
 
 
 import  pl.apcode.rcdevices.R;
+import pl.apcode.rcdevices.communication.BluetoothLinkService;
 import android.R.string;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
@@ -201,7 +202,7 @@ public class MainActivity extends Activity implements OnSeekBarChangeListener, O
 			setContentView(R.layout.activity_main);
 			
 		    btAdapter = BluetoothAdapter.getDefaultAdapter();
-		    checkBTState();
+		    //checkBTState();
 			
 			
 			angleValueText = (TextView)findViewById(R.id.servoValueText);
@@ -233,6 +234,12 @@ public class MainActivity extends Activity implements OnSeekBarChangeListener, O
 		    mCompass = mSensorManager.getDefaultSensor(Sensor.TYPE_ORIENTATION);
 		}
 
+		@Override
+		protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+			// TODO Auto-generated method stub
+			super.onActivityResult(requestCode, resultCode, data);
+		}
+		
 	@Override
 	protected void onStart() {
 		// TODO Auto-generated method stub
@@ -244,19 +251,19 @@ public class MainActivity extends Activity implements OnSeekBarChangeListener, O
 		
 		angleValueText.setText(Integer.toString(calculateAngle(500)));
 		
-		if(DEVICE_ADDRESS != "")
-			Connect();
-		mSensorManager.registerListener(this, mCompass, SensorManager.SENSOR_DELAY_GAME);
+		//if(DEVICE_ADDRESS != "")
+			//Connect();
+		//mSensorManager.registerListener(this, mCompass, SensorManager.SENSOR_DELAY_GAME);
 	}
 	
 	@Override
 	protected void onStop() {
 		// TODO Auto-generated method stub
 		super.onStop();
-		mSensorManager.unregisterListener(this);
+		//mSensorManager.unregisterListener(this);
 		
-		if(DEVICE_ADDRESS != "")
-			Disconnect();
+		//if(DEVICE_ADDRESS != "")
+			//Disconnect();
 	}
 	
 	@Override
@@ -404,6 +411,14 @@ public class MainActivity extends Activity implements OnSeekBarChangeListener, O
 	    	Intent configActivity = new Intent(this, Settings.class);
 	    	startActivity(configActivity);
 	        return true;
+	    case R.id.connect:
+	    	Intent istart = new Intent(this, BluetoothLinkService.class);
+	    	startService(istart);
+	    	return true;
+	    case R.id.disconnect:
+	    	Intent istop = new Intent(this, BluetoothLinkService.class);
+	    	stopService(istop);
+	    	return true;
 	    default:
 	        return super.onOptionsItemSelected(item);
 	    }

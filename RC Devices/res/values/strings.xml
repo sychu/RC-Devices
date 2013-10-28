@@ -12,7 +12,9 @@
     <string name="servo_max">Servo max angle</string>
     <string name="throttle">Throttle:</string>
     <string name="reverse">Rverse</string>
-    <string name="breaks">Breaks</string>
+    <string name="breaks">Break</string>
     <string name="connect">Connect</string>
     <string name="disconnect">Disconnect</string>
+    <string name="btlink_connecting">Bluetooth connecting…</string>
+    <string name="btlink_connected">Bluetooth connected!</string>
 </resources>
