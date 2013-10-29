@@ -1,8 +1,5 @@
-SensorsMaster (pl.apcode.sensorsmaster)
-Copyright (C) 2013 Adrian Sychowiec, Piotr Borek
-
-﻿OWNet module (org.owfs.ownet)
-Copyright (C) 2009 Martin Strandbygaard
+RC-Devices (pl.apcode.rcdevices, pl.apcode.rcdevices.*)
+Copyright (C) 2013 Adrian Sychowiec
 
 This program is free software: you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free Software
