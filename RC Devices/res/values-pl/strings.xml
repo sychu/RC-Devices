@@ -15,4 +15,7 @@
 
     <string name="btlink_connecting">Bluetooth - łączenie…</string>
     <string name="btlink_connected">Bluetooth - połączono!</string>
+    <string name="btlink_unabletoconnect">Brak połączenia ze zdalnym urządzeniem bluetooth</string>
+    
+    
 </resources>

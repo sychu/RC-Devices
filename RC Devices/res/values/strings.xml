@@ -17,4 +17,5 @@
     <string name="disconnect">Disconnect</string>
     <string name="btlink_connecting">Bluetooth connecting…</string>
     <string name="btlink_connected">Bluetooth connected!</string>
+    <string name="btlink_unabletoconnect">Unable to connect remote bluetooth device!</string>
 </resources>
