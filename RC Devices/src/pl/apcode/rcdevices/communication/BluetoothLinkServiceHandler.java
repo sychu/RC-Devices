@@ -98,7 +98,7 @@ public class BluetoothLinkServiceHandler extends Handler {
 	  public void initConnection() {
 		  synchronized(lock) {		
 			  	EventLogger.d(tag, "Handle CONNECT");
-			  	//TODO for live control RC toy it is ok to remove old messages with connection... i think.
+			  	//TODO for live control RC toy it is ok to remove old messages with connection... i think...
 			  	cleanUpQueue();
 				if(initBluetooth()) {
 					if(!connect())
