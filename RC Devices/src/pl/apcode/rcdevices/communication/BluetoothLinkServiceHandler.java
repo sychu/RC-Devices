@@ -3,6 +3,7 @@ package pl.apcode.rcdevices.communication;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.lang.reflect.Method;
+import java.net.Socket;
 import java.util.UUID;
 
 import pl.apcode.rcdevices.EventLogger;
@@ -21,15 +22,21 @@ import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
+import android.os.SystemClock;
 import android.preference.PreferenceManager;
 
+
+
 public class BluetoothLinkServiceHandler extends Handler {
+	public enum HandlerMethod {InitConnection, StartConnection};
 	
 	public static final String tag = BluetoothLinkServiceHandler.class.getSimpleName();
 	
 	private static final UUID SSP_UUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
 	public static final int NotificationID = 2001;
 	private static final Object lock = new Object();	
+	private static final int BTConnectDelay = 200; 
+	private static final int BTRetryDelay = 1000; 
 	
 	private Context ctx;
 	private SharedPreferences sharedPrefs;
@@ -51,8 +58,9 @@ public class BluetoothLinkServiceHandler extends Handler {
 		public static final int SEND = 130;
 		public static final int RECEIVE = 140;
 		public static final int INFO = 150;
-	}; 
-	
+	};
+	  	
+     
     
 	 public BluetoothLinkServiceHandler(Looper looper, Context ctx) {
 	      super(looper);
@@ -69,7 +77,7 @@ public class BluetoothLinkServiceHandler extends Handler {
 	
 		  switch(msg.what) {
 		  	case MsgType.CONNECT:
-		  		handleConnect();
+		  		initConnection();
 		  		break;
 		  	case MsgType.SEND:
 		  		EventLogger.d(tag, "Handle SEND");
@@ -87,16 +95,30 @@ public class BluetoothLinkServiceHandler extends Handler {
 	  }
 	  
 	  
-	  private void handleConnect() {
+	  public void initConnection() {
 		  synchronized(lock) {		
-			EventLogger.d(tag, "Handle CONNECT");
-	  		removeMessages(MsgType.CONNECT);
-	  			
-			if(initBluetooth()) {
-				reconnectDelayed();
-			 }
+			  	EventLogger.d(tag, "Handle CONNECT");
+			  	//TODO for live control RC toy it is ok to remove old messages with connection... i think.
+			  	cleanUpQueue();
+				if(initBluetooth()) {
+					if(!connect())
+						postDelayed(new Runnable() {
+							@Override
+							public void run() {
+								initConnection();
+							}
+						}  , BTRetryDelay);
+				}
 		  }
 	  }
+	  
+	  
+	  
+	  private synchronized void cleanUpQueue() {
+		  if(!terminating)
+			  removeCallbacksAndMessages(null);
+	  }
+	  
 	  
 	  private void handleQuit() {
 		  synchronized(lock) {
@@ -106,29 +128,6 @@ public class BluetoothLinkServiceHandler extends Handler {
 		  }
 	  }
 	  
-	  private void reconnectDelayed() {
-		  disconnect();
-		  postDelayed(new Runnable() {
-			public void run() {
-				EventLogger.i(tag, "Service Reconnecting...");
-				if(connect()) {
-					serviceNotify(
-	    				R.drawable.tx_notification_connected, 
-	    				null, 
-	    				R.string.btlink_connected);
-				} 
-				else
-				{
-					serviceNotify(
-	    				R.drawable.tx_notification_disconnected, 
-	    				null, 
-	    				R.string.btlink_unabletoconnect);
-					
-					handleConnect();
-				}
-			}
-		}, 2000);
-	  }
 	  
 	 public synchronized void quitGently() {
 			 terminating = true;
@@ -139,6 +138,22 @@ public class BluetoothLinkServiceHandler extends Handler {
 				}
 			});
 	  }
+	 
+	 private void onServiceONLine() {
+		 	isConnected = true;
+			serviceNotify(
+    				R.drawable.ic_stat_notify_btconnected, 
+    				null, 
+    				R.string.btlink_connected);
+	 }
+	 
+	 private void onServiceOFFline() {
+	    	isConnected = false;
+			serviceNotify(
+    				R.drawable.ic_stat_notify_btdisconnected, 
+    				null, 
+    				R.string.btlink_unabletoconnect);
+	 }
 	  
 	 private synchronized void serviceNotify(int iconID, Integer tickerTextID, int contentTextID) {
 		if(!terminating) {
@@ -191,7 +206,7 @@ public class BluetoothLinkServiceHandler extends Handler {
 		
 		EventLogger.d(tag, "initBluetooth");
 		
-		//if(btAdapter == null)
+		if(btAdapter == null)
 			btAdapter = BluetoothAdapter.getDefaultAdapter();
 		
 		if(btAdapter.isEnabled()) {
@@ -225,7 +240,13 @@ public class BluetoothLinkServiceHandler extends Handler {
 	  private boolean connect()
 	  {		  
 		  try
-		  {
+		  { 
+			
+			if(btSocket != null || outStream != null) {
+				disconnect();
+				Thread.sleep(BTConnectDelay);
+			}
+			
 		    // Set up a pointer to the remote node using it's address.
 		    BluetoothDevice device = btAdapter.getRemoteDevice(deviceAdderes);
 		    
@@ -244,7 +265,7 @@ public class BluetoothLinkServiceHandler extends Handler {
 		        
 		    // Discovery is resource intensive.  Make sure it isn't going on
 		    // when you attempt to connect and pass your message.
-		    btAdapter.cancelDiscovery();
+		    //btAdapter.cancelDiscovery();
 		    
 		    // Establish the connection.  This will block until it connects.
 		    try {
@@ -269,19 +290,27 @@ public class BluetoothLinkServiceHandler extends Handler {
 		    } catch (IOException e) {
 		    	EventLogger.e("Fatal Error", "In onResume() and output stream creation failed:" + e.getMessage() + ".");
 		    }	
+		    
+		    Thread.sleep(BTConnectDelay);
+		    
 		  } catch(Exception gex) {
 		    	EventLogger.e(tag, "Unable to connect device.", gex);
 		    	return false;
 		    }
 		  
-		  isConnected = true;
+		  
+		  onServiceONLine();
 		  return true;
 	  }
 	  
 	  
 	  private void disconnect() {
-	    	isConnected = false;	
-
+	    	
+		  if(outStream == null && btSocket == null)
+			  return;
+		  
+		    onServiceOFFline();
+		  
 			if (outStream != null) {
 			  try {
 				  EventLogger.i(tag, "Disconnecting");

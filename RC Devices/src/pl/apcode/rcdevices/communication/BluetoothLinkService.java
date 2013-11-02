@@ -51,7 +51,7 @@ public class BluetoothLinkService extends Service {
 	    startForeground(
 	    		BluetoothLinkServiceHandler.NotificationID, 
 	    		mServiceHandler.createNotification(
-	    				R.drawable.tx_notification_disconnected, 
+	    				R.drawable.ic_stat_notify_btdisconnected, 
 	    				null, 
 	    				R.string.btlink_connecting)); 
 	    
