@@ -24,6 +24,7 @@ import android.os.Looper;
 import android.os.Message;
 import android.os.SystemClock;
 import android.preference.PreferenceManager;
+import android.util.Log;
 
 
 
@@ -81,6 +82,8 @@ public class BluetoothLinkServiceHandler extends Handler {
 		  		break;
 		  	case MsgType.SEND:
 		  		EventLogger.d(tag, "Handle SEND");
+		  		if(msg.obj != null)
+		  			sendToBluetooth(String.valueOf( msg.obj));
 		  		break;
 		  	case MsgType.RECEIVE:
 		  		EventLogger.d(tag, "Handle RECEIVE");
@@ -94,22 +97,45 @@ public class BluetoothLinkServiceHandler extends Handler {
 		  
 	  }
 	  
+	  public void sendToBluetooth(String data) {
+		  synchronized(lock) {
+			if(terminating || !isConnected)
+				  return;
+			
+		    byte[] msgBuffer = data.getBytes();
+		  
+		    EventLogger.d(tag, "Send data: " + data);
+		  
+		    try {
+		      outStream.write(msgBuffer);
+		    } catch (IOException e) {
+		      isConnected = false;
+		      retryConnection();
+		      EventLogger.e(tag, "Write to bluetooth output stream FAIL!", e);
+		    }
+		  }
+	  }
 	  
 	  public void initConnection() {
 		  synchronized(lock) {		
+			    isConnected = false;
 			  	EventLogger.d(tag, "Handle CONNECT");
 			  	//TODO for live control RC toy it is ok to remove old messages with connection... i think...
 			  	cleanUpQueue();
 				if(initBluetooth()) {
 					if(!connect())
-						postDelayed(new Runnable() {
-							@Override
-							public void run() {
-								initConnection();
-							}
-						}  , BTRetryDelay);
+						retryConnection();
 				}
 		  }
+	  }
+	  
+	  private void retryConnection() {
+			postDelayed(new Runnable() {
+				@Override
+				public void run() {
+					initConnection();
+				}
+			}  , BTRetryDelay);
 	  }
 	  
 	  
@@ -278,8 +304,10 @@ public class BluetoothLinkServiceHandler extends Handler {
 		        
 		      } catch (IOException e2) {
 		    	  EventLogger.e(tag, "Socket close FAIL!", e2);
+		    	  btSocket = null;
 		    	  return false;
 		      }
+		      btSocket=null;
 		      return false;
 		    }
 		      
@@ -289,6 +317,7 @@ public class BluetoothLinkServiceHandler extends Handler {
 		      
 		    } catch (IOException e) {
 		    	EventLogger.e("Fatal Error", "In onResume() and output stream creation failed:" + e.getMessage() + ".");
+		    	return false;
 		    }	
 		    
 		    Thread.sleep(BTConnectDelay);
@@ -296,7 +325,7 @@ public class BluetoothLinkServiceHandler extends Handler {
 		  } catch(Exception gex) {
 		    	EventLogger.e(tag, "Unable to connect device.", gex);
 		    	return false;
-		    }
+		  }
 		  
 		  
 		  onServiceONLine();

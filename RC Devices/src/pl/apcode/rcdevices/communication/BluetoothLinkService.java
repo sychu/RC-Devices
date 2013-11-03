@@ -19,12 +19,14 @@ import android.bluetooth.BluetoothSocket;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.res.Resources;
+import android.os.Binder;
 import android.os.Build;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.IBinder;
 import android.os.Looper;
 import android.os.Message;
+import android.os.Messenger;
 import android.os.Process;
 import android.preference.PreferenceManager;
 import android.util.Log;
@@ -36,6 +38,20 @@ public class BluetoothLinkService extends Service {
 	
 	private Looper mServiceLooper;
 	private BluetoothLinkServiceHandler mServiceHandler;
+	private final IBinder mBinder = new LocalBinder();
+
+
+    /**
+     * Class used for the client Binder.  Because we know this service always
+     * runs in the same process as its clients, we don't need to deal with IPC.
+     */
+    public class LocalBinder extends Binder {
+    	public BluetoothLinkService getService() {
+            // Return this instance of LocalService so clients can call public methods
+            return BluetoothLinkService.this;
+        }
+    }
+
 	
 	@Override
 	public void onCreate() {
@@ -47,6 +63,7 @@ public class BluetoothLinkService extends Service {
 	    
 	    mServiceLooper = thread.getLooper();
 	    mServiceHandler = new BluetoothLinkServiceHandler(mServiceLooper, getApplicationContext());
+	    
 	    
 	    startForeground(
 	    		BluetoothLinkServiceHandler.NotificationID, 
@@ -69,9 +86,9 @@ public class BluetoothLinkService extends Service {
 	
 	@Override
 	public IBinder onBind(Intent arg0) {
-		
 		Log.d(tag, "onBind");
-		return null;
+		return mBinder;
+
 	}
 	
 	
@@ -83,6 +100,11 @@ public class BluetoothLinkService extends Service {
 		super.onDestroy();
 	}
 	
+	
+	public void sendData(String data) {
+		Message msg=mServiceHandler.obtainMessage(BluetoothLinkServiceHandler.MsgType.SEND, data);
+		msg.sendToTarget();
+	}
 	
 
 

@@ -8,6 +8,7 @@ import java.util.UUID;
 
 import  pl.apcode.rcdevices.R;
 import pl.apcode.rcdevices.communication.BluetoothLinkService;
+import pl.apcode.rcdevices.communication.BluetoothLinkService.LocalBinder;
 import android.R.string;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
@@ -15,16 +16,20 @@ import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.IBinder;
 import android.preference.PreferenceManager;
 import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
+import android.content.ComponentName;
 import android.content.Intent;
+import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.animation.BounceInterpolator;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
 import android.widget.CompoundButton.OnCheckedChangeListener;
@@ -36,6 +41,10 @@ import android.widget.Toast;
 
 public class MainActivity extends Activity implements OnSeekBarChangeListener, OnCheckedChangeListener, SensorEventListener {
 
+    BluetoothLinkService mService;
+    boolean mBound = false;
+
+	
 	private SeekBar bar,bar2,throttleBar;
 	private TextView angleValueText;
 	private TextView lowFilterPassValueText;
@@ -45,18 +54,8 @@ public class MainActivity extends Activity implements OnSeekBarChangeListener, O
 	private CheckBox linkWithAzimuthCheckBox;
 	private CheckBox reverseCheckBox, breaksCheckBox;
 	
-	
-	private String DEVICE_ADDRESS =  "";
 	private int angleMin = 0;
 	private int angleMax = 180;
-	
-	  // SPP UUID service
-	private static final UUID MY_UUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
-	private static final String TAG = "bluetooth1";
-	
-	  private BluetoothAdapter btAdapter = null;
-	  private BluetoothSocket btSocket = null;
-	  private OutputStream outStream = null;
 	
 	private SensorManager mSensorManager;
 	private Sensor mCompass;
@@ -70,52 +69,12 @@ public class MainActivity extends Activity implements OnSeekBarChangeListener, O
 	
 
 	  
-	
-
-	
-	  
-	  private void errorExit(String title, String message){
-	    Toast.makeText(getBaseContext(), title + " - " + message, Toast.LENGTH_LONG).show();
-	    finish();
-	  }
-	  
-	  private void sendData(String message) {
-		  
-		if(!isConnected() )
-			return;
-		
-	    byte[] msgBuffer = message.getBytes();
-	  
-	    Log.d(TAG, "...Send data: " + message + "...");
-	  
-	    try {
-	      outStream.write(msgBuffer);
-	    } catch (IOException e) {
-	      String msg = "In onResume() and an exception occurred during write: " + e.getMessage();
-	      if (DEVICE_ADDRESS.equals("00:00:00:00:00:00"))
-	        msg = msg + ".\n\nUpdate your server address from 00:00:00:00:00:00 to the correct address on line 35 in the java code";
-	        msg = msg +  ".\n\nCheck that the SPP UUID: " + MY_UUID.toString() + " exists on server.\n\n";
-	        
-	        errorExit("Fatal Error", msg);      
-	    }
-	  }
-
-	  private boolean _isConnected = false;
-	  
-	  private boolean isConnected() {
-		  return _isConnected;
-	  }
-	  
 
 	  
 		@Override
 		protected void onCreate(Bundle savedInstanceState) {
 			super.onCreate(savedInstanceState);
-			setContentView(R.layout.activity_main);
-			
-		    btAdapter = BluetoothAdapter.getDefaultAdapter();
-		    //checkBTState();
-			
+			setContentView(R.layout.activity_main);			
 			
 			angleValueText = (TextView)findViewById(R.id.servoValueText);
 			azimuthValueText = (TextView)findViewById(R.id.azimuthValueText);
@@ -157,25 +116,16 @@ public class MainActivity extends Activity implements OnSeekBarChangeListener, O
 		// TODO Auto-generated method stub
 		super.onStart();
 		SharedPreferences sharedPrefs = PreferenceManager.getDefaultSharedPreferences(this);
-		DEVICE_ADDRESS = sharedPrefs.getString("bt-address", "");
 		angleMin = Integer.parseInt(sharedPrefs.getString("servo-min", "0"));
-		angleMax = Integer.parseInt(sharedPrefs.getString("servo-max", "180"));
-		
+		angleMax = Integer.parseInt(sharedPrefs.getString("servo-max", "180"));	
 		angleValueText.setText(Integer.toString(calculateAngle(500)));
 		
-		//if(DEVICE_ADDRESS != "")
-			//Connect();
-		//mSensorManager.registerListener(this, mCompass, SensorManager.SENSOR_DELAY_GAME);
+		mSensorManager.registerListener(this, mCompass, SensorManager.SENSOR_DELAY_GAME);
 	}
 	
 	@Override
 	protected void onStop() {
-		// TODO Auto-generated method stub
 		super.onStop();
-		//mSensorManager.unregisterListener(this);
-		
-		//if(DEVICE_ADDRESS != "")
-			//Disconnect();
 	}
 	
 	@Override
@@ -185,10 +135,42 @@ public class MainActivity extends Activity implements OnSeekBarChangeListener, O
 		return true;
 	}
 
+    /** Defines callbacks for service binding, passed to bindService() */
+    private ServiceConnection mConnection = new ServiceConnection() {
 
+        @Override
+        public void onServiceConnected(ComponentName className,
+                IBinder service) {
+            // We've bound to LocalService, cast the IBinder and get LocalService instance
+            LocalBinder binder = (LocalBinder) service;
+            mService = binder.getService();
+            mBound = true;
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName arg0) {
+            mBound = false;
+        }
+    };
+
+
+    public void sendData(String data) {
+    	if(mBound)
+    		mService.sendData(data);
+    }
 	
+    public int calculateProg(int  angleValue) {
+        double prg=(angleValue-angleMin)*1000.0/(angleMax - angleMin);
+    	if(prg<0)
+    		prg=0;
+    	else if(prg>1000)
+    		prg = 1000;
+    	
+    	return (int) (prg+0.5);
+    }
+    
 	public int calculateAngle(int progValue) {
-		return (angleMax - angleMin) * progValue / 1000 + angleMin;	
+		return (int)((angleMax - angleMin) * progValue / 1000.0 + angleMin + 0.5);	
 	}
 	
 	public int calculateThrottle(int progValue) {
@@ -200,7 +182,7 @@ public class MainActivity extends Activity implements OnSeekBarChangeListener, O
 			boolean fromUser) {
 		
 		if(seekBar.getId() == R.id.seekBar1) {
-		angle = calculateAngle(progress);;
+		angle = calculateAngle(progress);
 		angleValueText.setText(Integer.toString(angle));
 		sendData("s#" + Integer.toString(angle) + ";");
 		}
@@ -252,7 +234,6 @@ public class MainActivity extends Activity implements OnSeekBarChangeListener, O
 
 	@Override
 	public void onSensorChanged(SensorEvent event) {
-		// TODO Auto-generated method stub
 		
 		if (event.sensor.getType() == Sensor.TYPE_ORIENTATION) {
 			accelVals = lowPass( event.values, accelVals );
@@ -273,7 +254,7 @@ public class MainActivity extends Activity implements OnSeekBarChangeListener, O
 				else if(newAngle > 180)
 					newAngle = 180;
 				
-				bar.setProgress(newAngle);
+				bar.setProgress(calculateProg(newAngle));
 			}
 		}
 	}
@@ -326,10 +307,15 @@ public class MainActivity extends Activity implements OnSeekBarChangeListener, O
 	    case R.id.connect:
 	    	Intent istart = new Intent(this, BluetoothLinkService.class);
 	    	startService(istart);
+	    	bindService(istart, mConnection, BIND_AUTO_CREATE);
 	    	return true;
 	    case R.id.disconnect:
 	    	Intent istop = new Intent(this, BluetoothLinkService.class);
 	    	stopService(istop);
+	    	if(mBound) {
+	    		unbindService(mConnection);
+	    		mBound = false;
+	    	}
 	    	return true;
 	    default:
 	        return super.onOptionsItemSelected(item);
