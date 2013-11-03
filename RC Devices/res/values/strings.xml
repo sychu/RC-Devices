@@ -6,16 +6,20 @@
     <string name="servo_angle">Servo Angle: </string>
     <string name="azimuth">Azimuth: </string>
     <string name="device_address">Device address</string>
-    <string name="link_with_azimuth">Link with azimuth</string>
+    <string name="use_sensors">Use sensors</string>
     <string name="low_pass_filter">Low pass filter: </string>
     <string name="servo_min">Servo min angle</string>
     <string name="servo_max">Servo max angle</string>
     <string name="throttle">Throttle:</string>
     <string name="reverse">Rverse</string>
-    <string name="breaks">Break</string>
+    <string name="breaks">Breaks</string>
     <string name="connect">Connect</string>
     <string name="disconnect">Disconnect</string>
     <string name="btlink_connecting">Bluetooth connecting…</string>
     <string name="btlink_connected">Bluetooth connected!</string>
     <string name="btlink_unabletoconnect">Unable to connect remote bluetooth device!</string>
+    <string name="title_activity_car">Car</string>
+    <string name="hello_world">Hello world!</string>
+    <string name="set_rot_ref">Set rot. reference</string>
+
 </resources>

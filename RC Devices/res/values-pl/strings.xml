@@ -6,7 +6,7 @@
     <string name="servo_angle">Kąt serwa: </string>
     <string name="azimuth">Azymut: </string>
     <string name="device_address">Adres urządzenia</string>
-    <string name="link_with_azimuth">Połącz z azymutem</string>
+    <string name="use_sensors">Użyj czujników</string>
     <string name="low_pass_filter">Filtr dolnoprzepustowy: </string>
     
     <string name="throttle">Gaz:</string>
@@ -17,5 +17,6 @@
     <string name="btlink_connected">Bluetooth - połączono!</string>
     <string name="btlink_unabletoconnect">Brak połączenia ze zdalnym urządzeniem bluetooth</string>
     
+    <string name="set_rot_ref">Ust. odniesienie</string>
     
 </resources>

@@ -29,7 +29,11 @@ import android.content.SharedPreferences;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.MotionEvent;
+import android.view.View;
+import android.view.View.OnTouchListener;
 import android.view.animation.BounceInterpolator;
+import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
 import android.widget.CompoundButton.OnCheckedChangeListener;
@@ -39,7 +43,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 
-public class MainActivity extends Activity implements OnSeekBarChangeListener, OnCheckedChangeListener, SensorEventListener {
+public class MainActivity extends Activity implements OnSeekBarChangeListener, OnCheckedChangeListener, SensorEventListener, OnTouchListener {
 
     BluetoothLinkService mService;
     boolean mBound = false;
@@ -48,27 +52,32 @@ public class MainActivity extends Activity implements OnSeekBarChangeListener, O
 	private SeekBar bar,bar2,throttleBar;
 	private TextView angleValueText;
 	private TextView lowFilterPassValueText;
-	private TextView azimuthValueText;
 	private TextView throttleValueText; 
+	private TextView xRot, yRot, zRot;
 	
-	private CheckBox linkWithAzimuthCheckBox;
-	private CheckBox reverseCheckBox, breaksCheckBox;
+	private CheckBox useSensorsCheckBox;
+	private Button breaksButon, setRotRef; 
 	
 	private int angleMin = 0;
 	private int angleMax = 180;
+	private int angleCenter = 90;
 	
 	private SensorManager mSensorManager;
-	private Sensor mCompass;
-	
-	private int azimuth = 0;
-	private int angle = 90;
-	private int refAzimuth = 0;
-	private int refAngle = 90;
-	private volatile float filterSensivity = 0.2f;
-	protected float[] accelVals = null;
-	
+    private Sensor mAccelerometer;
+    private Sensor mMagnetometer;
 
-	  
+    private float[] mLastAccelerometer = new float[3];
+    private float[] mLastMagnetometer = new float[3];
+    private boolean mLastAccelerometerSet = false;
+    private boolean mLastMagnetometerSet = false;
+    
+    private float[] mR = new float[9];
+    private float[] mRef = null;
+    private float[] mAngleChange = new float[3];
+    private float[] mAngleChangeFiltered = null;
+
+	private volatile float filterSensivity = 0.1f;
+	protected float[] accelVals = null;
 
 	  
 		@Override
@@ -77,7 +86,6 @@ public class MainActivity extends Activity implements OnSeekBarChangeListener, O
 			setContentView(R.layout.activity_main);			
 			
 			angleValueText = (TextView)findViewById(R.id.servoValueText);
-			azimuthValueText = (TextView)findViewById(R.id.azimuthValueText);
 			lowFilterPassValueText = (TextView)findViewById(R.id.lowPassFilterValueText);
 			lowFilterPassValueText.setText(String.format("%.2f", filterSensivity ));
 			throttleValueText = (TextView)findViewById(R.id.textViewThrottleValue);
@@ -92,17 +100,22 @@ public class MainActivity extends Activity implements OnSeekBarChangeListener, O
 			throttleBar = (SeekBar)findViewById(R.id.seekBarMotor);
 			throttleBar.setOnSeekBarChangeListener(this);
 			
-			linkWithAzimuthCheckBox = (CheckBox)findViewById(R.id.checkBox1);
-			linkWithAzimuthCheckBox.setOnCheckedChangeListener(this);
+			useSensorsCheckBox = (CheckBox)findViewById(R.id.useSensorsCheckBox);
+			useSensorsCheckBox.setOnCheckedChangeListener(this);
 			
-			reverseCheckBox = (CheckBox)findViewById(R.id.checkBoxReverse);
-			reverseCheckBox.setOnCheckedChangeListener(this);
+			breaksButon = (Button)findViewById(R.id.breaksButton);
+			breaksButon.setOnTouchListener(this);
 			
-			breaksCheckBox = (CheckBox)findViewById(R.id.checkBoxBreak);
-			breaksCheckBox.setOnCheckedChangeListener(this);
-			
+			setRotRef = (Button)findViewById(R.id.setRotRefButton);
+			setRotRef.setOnTouchListener(this);
+						
 		    mSensorManager = (SensorManager)getSystemService(SENSOR_SERVICE);
-		    mCompass = mSensorManager.getDefaultSensor(Sensor.TYPE_ORIENTATION);
+	        mAccelerometer = mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+	        mMagnetometer = mSensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD);
+	        
+	        xRot = (TextView)findViewById(R.id.xTextView);
+	        yRot = (TextView)findViewById(R.id.yTextView);
+	        zRot = (TextView)findViewById(R.id.zTextView);
 		}
 
 		@Override
@@ -118,14 +131,20 @@ public class MainActivity extends Activity implements OnSeekBarChangeListener, O
 		SharedPreferences sharedPrefs = PreferenceManager.getDefaultSharedPreferences(this);
 		angleMin = Integer.parseInt(sharedPrefs.getString("servo-min", "0"));
 		angleMax = Integer.parseInt(sharedPrefs.getString("servo-max", "180"));	
-		angleValueText.setText(Integer.toString(calculateAngle(500)));
+		angleCenter = calculateAngle(500);
+		angleValueText.setText(Integer.toString(angleCenter));
 		
-		mSensorManager.registerListener(this, mCompass, SensorManager.SENSOR_DELAY_GAME);
+        mLastAccelerometerSet = false;
+        mLastMagnetometerSet = false;
+        mSensorManager.registerListener(this, mAccelerometer, SensorManager.SENSOR_DELAY_GAME);
+        mSensorManager.registerListener(this, mMagnetometer, SensorManager.SENSOR_DELAY_GAME);
+
 	}
 	
 	@Override
 	protected void onStop() {
 		super.onStop();
+        mSensorManager.unregisterListener(this);
 	}
 	
 	@Override
@@ -160,21 +179,31 @@ public class MainActivity extends Activity implements OnSeekBarChangeListener, O
     }
 	
     public int calculateProg(int  angleValue) {
-        double prg=(angleValue-angleMin)*1000.0/(angleMax - angleMin);
+        int prg=Math.round((angleValue-angleMin)*1000.0f/(angleMax - angleMin));
     	if(prg<0)
     		prg=0;
     	else if(prg>1000)
     		prg = 1000;
     	
-    	return (int) (prg+0.5);
+    	return prg;
     }
     
 	public int calculateAngle(int progValue) {
-		return (int)((angleMax - angleMin) * progValue / 1000.0 + angleMin + 0.5);	
+		return Math.round((angleMax - angleMin) * progValue / 1000.0f + angleMin);	
 	}
 	
 	public int calculateThrottle(int progValue) {
-		return (progValue * 255)/1000;
+		return Math.round((progValue-500) * 255*2/1000.0f);
+	}
+	
+	public int calculateThrottleProgres(int thr) {
+		int prg =  Math.round(thr*1000/(255*2.0f) + 500);
+    	if(prg<0)
+    		prg=0;
+    	else if(prg>1000)
+    		prg = 1000;
+    	
+    	return prg;
 	}
 	
 	@Override
@@ -182,7 +211,7 @@ public class MainActivity extends Activity implements OnSeekBarChangeListener, O
 			boolean fromUser) {
 		
 		if(seekBar.getId() == R.id.seekBar1) {
-		angle = calculateAngle(progress);
+		int angle = calculateAngle(progress);
 		angleValueText.setText(Integer.toString(angle));
 		sendData("s#" + Integer.toString(angle) + ";");
 		}
@@ -203,13 +232,11 @@ public class MainActivity extends Activity implements OnSeekBarChangeListener, O
 	public void updateMotor() {
 		int throttle = calculateThrottle(throttleBar.getProgress());
 		throttleValueText.setText(Integer.toString(throttle));
-		if(!breaksCheckBox.isChecked()) {
-			if(reverseCheckBox.isChecked())
-				sendData("r#" + Integer.toString(throttle) + ";");
-			else
-				sendData("f#" + Integer.toString(throttle) + ";");
-		} else
-			sendData("b;");
+
+		if(throttle<0)
+			sendData("r#" + Integer.toString(Math.abs(throttle)) + ";");
+		else
+			sendData("f#" + Integer.toString(throttle) + ";");
 		
 	}
 	
@@ -235,28 +262,36 @@ public class MainActivity extends Activity implements OnSeekBarChangeListener, O
 	@Override
 	public void onSensorChanged(SensorEvent event) {
 		
-		if (event.sensor.getType() == Sensor.TYPE_ORIENTATION) {
-			accelVals = lowPass( event.values, accelVals );
-		
-			azimuth = Math.round(accelVals[0]);
-			
-			azimuthValueText.setText(Integer.toString(azimuth));
-			if(linkWithAzimuthCheckBox.isChecked()) {
-				int newAngle = azimuth - refAzimuth + refAngle;
-				
-				if(newAngle < 0)
-					newAngle = newAngle + 360;
-				else if(newAngle > 360)
-					newAngle = newAngle - 360;
-				
-				if(newAngle > 270)
-					newAngle = 0;
-				else if(newAngle > 180)
-					newAngle = 180;
-				
-				bar.setProgress(calculateProg(newAngle));
-			}
-		}
+        if (event.sensor == mAccelerometer) {
+            System.arraycopy(event.values, 0, mLastAccelerometer, 0, event.values.length);
+            mLastAccelerometerSet = true;
+        } else if (event.sensor == mMagnetometer) {
+            System.arraycopy(event.values, 0, mLastMagnetometer, 0, event.values.length);
+            mLastMagnetometerSet = true;
+        }
+        if (mLastAccelerometerSet && mLastMagnetometerSet) {
+            if(SensorManager.getRotationMatrix(mR, null, mLastAccelerometer, mLastMagnetometer)) {
+            	if(mRef == null)
+            		mRef = mR.clone();
+            	
+            	SensorManager.getAngleChange(mAngleChange, mR, mRef);
+            	mAngleChangeFiltered = lowPass(mAngleChange, mAngleChangeFiltered);
+            	//z,x,y
+            	double x,y,z;
+            	x = Math.toDegrees(mAngleChangeFiltered[1]);
+            	y = Math.toDegrees(mAngleChangeFiltered[2]);
+            	z = Math.toDegrees(mAngleChangeFiltered[0]);
+            	
+            	xRot.setText(String.format("%.1f", x) );
+            	yRot.setText(String.format("%.1f", y) );
+            	zRot.setText(String.format("%.1f", z));
+            	
+            	if(useSensorsCheckBox.isChecked()) {
+            		bar.setProgress(calculateProg(angleCenter + (int)Math.round(y*1.5) ));
+            		throttleBar.setProgress(calculateThrottleProgres((int)Math.round(x*11)));
+            	}
+            }
+        }
 	}
 
 
@@ -284,10 +319,10 @@ public class MainActivity extends Activity implements OnSeekBarChangeListener, O
 	public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
 		// TODO Auto-generated method stub
 		
-		if(buttonView.getId() == R.id.checkBox1) {
+		if(buttonView.getId() == R.id.useSensorsCheckBox) {
 			if(isChecked) {
-				refAngle = angle;
-				refAzimuth = azimuth;
+				System.arraycopy(mR, 0, mRef, 0, mR.length);
+				mAngleChangeFiltered = null;
 			}
 		} else {
 			updateMotor();
@@ -320,6 +355,24 @@ public class MainActivity extends Activity implements OnSeekBarChangeListener, O
 	    default:
 	        return super.onOptionsItemSelected(item);
 	    }
+	}
+
+	@Override
+	public boolean onTouch(View v, MotionEvent event) {
+		
+		if(v.getId() == R.id.breaksButton) {
+			if(event.getAction() == MotionEvent.ACTION_DOWN) {
+				useSensorsCheckBox.setChecked(false);
+				sendData("b;");
+				throttleBar.setProgress(500);
+				bar.setProgress(500);
+				return false;
+			}
+		} else if(v.getId() == R.id.setRotRefButton) {
+			
+			System.arraycopy(mR, 0, mRef, 0, mR.length);
+		}
+		return false;
 	}
 
 }
