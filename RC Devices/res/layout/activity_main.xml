@@ -163,16 +163,6 @@
         android:text="@string/breaks" />
 
     <SeekBar
-        android:id="@+id/seekBar2"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_above="@+id/textViewThrottleValue"
-        android:layout_alignParentLeft="true"
-        android:layout_marginBottom="78dp"
-        android:max="100"
-        android:progress="50" />
-
-    <SeekBar
         android:id="@+id/seekBarMotor"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -191,5 +181,15 @@
         android:layout_marginLeft="5dp"
         android:layout_toRightOf="@+id/textView1"
         android:text="90" />
+
+    <SeekBar
+        android:id="@+id/seekBar2"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_above="@+id/textViewThrottleValue"
+        android:layout_alignLeft="@+id/textView03"
+        android:layout_marginBottom="23dp"
+        android:max="100"
+        android:progress="50" />
 
 </RelativeLayout>
