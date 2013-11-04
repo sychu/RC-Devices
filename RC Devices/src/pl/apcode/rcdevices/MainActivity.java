@@ -64,20 +64,15 @@ public class MainActivity extends Activity implements OnSeekBarChangeListener, O
 	
 	private SensorManager mSensorManager;
     private Sensor mAccelerometer;
-    private Sensor mMagnetometer;
 
-    private float[] mLastAccelerometer = new float[3];
-    private float[] mLastMagnetometer = new float[3];
-    private boolean mLastAccelerometerSet = false;
-    private boolean mLastMagnetometerSet = false;
-    
-    private float[] mR = new float[9];
-    private float[] mRef = null;
-    private float[] mAngleChange = new float[3];
-    private float[] mAngleChangeFiltered = null;
+    private boolean mInitAccelerometer = true;
+    private double[] mAccVector = new double[3]; //gravity
+    private double[] mAccAngle = new double[3];
+    private double[] mAccAngleRef = new double[3];
+    private double[] mAccAngleFiltered = new double[3];
 
 	private volatile float filterSensivity = 0.1f;
-	protected float[] accelVals = null;
+
 
 	  
 		@Override
@@ -111,7 +106,6 @@ public class MainActivity extends Activity implements OnSeekBarChangeListener, O
 						
 		    mSensorManager = (SensorManager)getSystemService(SENSOR_SERVICE);
 	        mAccelerometer = mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
-	        mMagnetometer = mSensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD);
 	        
 	        xRot = (TextView)findViewById(R.id.xTextView);
 	        yRot = (TextView)findViewById(R.id.yTextView);
@@ -134,11 +128,8 @@ public class MainActivity extends Activity implements OnSeekBarChangeListener, O
 		angleCenter = calculateAngle(500);
 		angleValueText.setText(Integer.toString(angleCenter));
 		
-        mLastAccelerometerSet = false;
-        mLastMagnetometerSet = false;
+		mInitAccelerometer = true;
         mSensorManager.registerListener(this, mAccelerometer, SensorManager.SENSOR_DELAY_GAME);
-        mSensorManager.registerListener(this, mMagnetometer, SensorManager.SENSOR_DELAY_GAME);
-
 	}
 	
 	@Override
@@ -219,8 +210,7 @@ public class MainActivity extends Activity implements OnSeekBarChangeListener, O
 			
 			filterSensivity = progress / 100.0f;
 			lowFilterPassValueText.setText(String.format("%.2f", filterSensivity ));
-			
-			
+				
 		}else if( seekBar.getId() == R.id.seekBarMotor) {
 			updateMotor();
 		}
@@ -262,6 +252,40 @@ public class MainActivity extends Activity implements OnSeekBarChangeListener, O
 	@Override
 	public void onSensorChanged(SensorEvent event) {
 		
+		if(event.sensor == mAccelerometer) {
+			float[] g = event.values;
+			double g_len = Math.sqrt(g[0]*g[0] + g[1]*g[1] + g[2]*g[2]);
+			
+			mAccVector[0] = g[0]/g_len;
+			mAccVector[1] = g[1]/g_len;
+			mAccVector[2] = g[2]/g_len;
+			
+			calculateAngle(mAccVector, mAccAngle);
+			
+			if(mInitAccelerometer) {
+				mInitAccelerometer = false;
+				System.arraycopy(mAccAngle, 0, mAccAngleRef, 0, mAccAngle.length);
+				System.arraycopy(mAccAngle, 0, mAccAngleFiltered, 0, mAccAngle.length);
+			} else {
+				lowPass(mAccAngle, mAccAngleFiltered);
+			}
+			
+			double x = mAccAngleFiltered[0] - mAccAngleRef[0];
+			double y = mAccAngleFiltered[1] - mAccAngleRef[1];
+			double z = mAccAngleFiltered[2] - mAccAngleRef[2];
+			
+        	xRot.setText(String.format("%.0f", x));
+        	yRot.setText(String.format("%.0f", y));
+        	zRot.setText(String.format("%.0f", z));
+        	
+        	if(useSensorsCheckBox.isChecked()) {
+        		bar.setProgress(calculateProg(angleCenter + (int)Math.round(x*1.5) ));
+        		throttleBar.setProgress(calculateThrottleProgres((int)Math.round(y*13)));
+        	}
+			
+		}
+		
+		/*
         if (event.sensor == mAccelerometer) {
             System.arraycopy(event.values, 0, mLastAccelerometer, 0, event.values.length);
             mLastAccelerometerSet = true;
@@ -291,11 +315,11 @@ public class MainActivity extends Activity implements OnSeekBarChangeListener, O
             		throttleBar.setProgress(calculateThrottleProgres((int)Math.round(x*11)));
             	}
             }
-        }
+        }*/
 	}
 
 
-	protected float[] lowPass( float[] input, float[] output ) {
+	protected double[] lowPass( double[] input, double[] output ) {
 	    
 		if ( output == null ) 
 		{
@@ -321,8 +345,7 @@ public class MainActivity extends Activity implements OnSeekBarChangeListener, O
 		
 		if(buttonView.getId() == R.id.useSensorsCheckBox) {
 			if(isChecked) {
-				System.arraycopy(mR, 0, mRef, 0, mR.length);
-				mAngleChangeFiltered = null;
+				mInitAccelerometer = true;
 			}
 		} else {
 			updateMotor();
@@ -357,6 +380,13 @@ public class MainActivity extends Activity implements OnSeekBarChangeListener, O
 	    }
 	}
 
+	private void calculateAngle(double[] normVector, double[] outAngle) {
+		outAngle[0] = Math.toDegrees(Math.acos(normVector[0]));
+		outAngle[1] = Math.toDegrees(Math.acos(normVector[1]));
+		outAngle[2] = Math.toDegrees(Math.acos(normVector[2]));
+	}
+	
+	
 	@Override
 	public boolean onTouch(View v, MotionEvent event) {
 		
@@ -370,7 +400,7 @@ public class MainActivity extends Activity implements OnSeekBarChangeListener, O
 			}
 		} else if(v.getId() == R.id.setRotRefButton) {
 			
-			System.arraycopy(mR, 0, mRef, 0, mR.length);
+			mInitAccelerometer = true;
 		}
 		return false;
 	}
