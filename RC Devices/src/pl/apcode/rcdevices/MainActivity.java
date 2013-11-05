@@ -186,6 +186,11 @@ public class MainActivity extends Activity implements OnSeekBarChangeListener, O
 	}
 	
 	public void updateMotor(int throttle) {
+		if(throttle < -255)
+			throttle = -255;
+		else if(throttle > 255)
+			throttle=255;
+		
 		
 		throttleValueText.setText(Integer.toString(throttle));
 
@@ -199,6 +204,11 @@ public class MainActivity extends Activity implements OnSeekBarChangeListener, O
 	}
 	
 	public void updateServo(int angle) {
+		if(angle < angleMin)
+			angle = angleMin;
+		else if(angle > angleMax)
+			angle = angleMax;
+		
 		angleValueText.setText(Integer.toString(angle));
 		sendData("s#" + Integer.toString(angle) + ";");	
 	}
