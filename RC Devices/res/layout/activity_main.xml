@@ -9,12 +9,6 @@
     tools:context=".MainActivity" >
 
     <TextView
-        android:id="@+id/textView1"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="@string/servo_angle" />
-
-    <TextView
         android:id="@+id/lowPassFilterValueText"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -28,131 +22,108 @@
         android:id="@+id/textViewThrottleValue"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_above="@+id/seekBarMotor"
+        android:layout_above="@+id/throttleBar"
         android:layout_marginLeft="5dp"
         android:layout_toRightOf="@+id/textViewThrottle"
         android:text="0" />
 
     <TextView
-        android:id="@+id/textViewThrottle"
+        android:id="@+id/servoValueText"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_above="@+id/seekBarMotor"
-        android:layout_alignParentLeft="true"
-        android:text="@string/throttle" />
-
-    <CheckBox
-        android:id="@+id/useSensorsCheckBox"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_alignLeft="@+id/seekBar1"
-        android:layout_below="@+id/seekBar1"
-        android:layout_marginTop="22dp"
-        android:text="@string/use_sensors" />
-
-    <SeekBar
-        android:id="@+id/seekBar1"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_alignLeft="@+id/textView1"
-        android:layout_below="@+id/textView1"
-        android:max="1000"
-        android:progress="500" />
-
-    <TextView
-        android:id="@+id/textView03"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_above="@+id/seekBar2"
-        android:layout_alignParentLeft="true"
-        android:text="@string/low_pass_filter" />
-
-    <TableLayout
-        android:id="@+id/tableLayout1"
-        android:layout_width="wrap_content"
-        android:layout_height="match_parent"
-        android:layout_above="@+id/lowPassFilterValueText"
-        android:layout_alignParentLeft="true"
-        android:layout_below="@+id/useSensorsCheckBox"
-        android:layout_toLeftOf="@+id/setRotRefButton" >
-
-        <TableRow
-            android:id="@+id/tableRow1"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content" >
-
-            <TextView
-                android:id="@+id/textView3"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:gravity="right"
-                android:text="x= "
-                android:textAppearance="?android:attr/textAppearanceSmall" />
-
-            <TextView
-                android:id="@+id/xTextView"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="0"
-                android:textAppearance="?android:attr/textAppearanceSmall" />
-        </TableRow>
-
-        <TableRow
-            android:id="@+id/tableRow2"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content" >
-
-            <TextView
-                android:id="@+id/textView5"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:gravity="right"
-                android:text="y= "
-                android:textAppearance="?android:attr/textAppearanceSmall" />
-
-            <TextView
-                android:id="@+id/yTextView"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="0"
-                android:textAppearance="?android:attr/textAppearanceSmall" />
-        </TableRow>
-
-        <TableRow
-            android:id="@+id/tableRow3"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content" >
-
-            <TextView
-                android:id="@+id/textView7"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:gravity="right"
-                android:text="z= "
-                android:textAppearance="?android:attr/textAppearanceSmall" />
-
-            <TextView
-                android:id="@+id/zTextView"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="0"
-                android:textAppearance="?android:attr/textAppearanceSmall" />
-        </TableRow>
-    </TableLayout>
+        android:layout_above="@+id/servoAngleBar"
+        android:layout_marginLeft="5dp"
+        android:layout_toRightOf="@+id/servoAngleTextView"
+        android:text="90" />
 
     <Button
-        android:id="@+id/setRotRefButton"
+        android:id="@+id/driveButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentLeft="true"
+        android:text="@string/hold_drive" />
+
+    <LinearLayout
+        android:id="@+id/linearLayout1"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentLeft="true"
         android:layout_alignParentRight="true"
-        android:layout_alignTop="@+id/tableLayout1"
-        android:text="@string/set_rot_ref" />
+        android:layout_alignParentTop="true" >
+
+        <TextView
+            android:id="@+id/textView3"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="right"
+            android:text="x ="
+            android:textAppearance="?android:attr/textAppearanceSmall" />
+
+        <TextView
+            android:id="@+id/xTextView"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="0"
+            android:textAppearance="?android:attr/textAppearanceSmall"
+            android:typeface="monospace" />
+
+        <TextView
+            android:id="@+id/textView5"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="right"
+            android:text="y = "
+            android:textAppearance="?android:attr/textAppearanceSmall" />
+
+        <TextView
+            android:id="@+id/yTextView"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="0"
+            android:textAppearance="?android:attr/textAppearanceSmall"
+            android:typeface="monospace" />
+
+        <TextView
+            android:id="@+id/textView7"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="right"
+            android:text="z ="
+            android:textAppearance="?android:attr/textAppearanceSmall" />
+
+        <TextView
+            android:id="@+id/zTextView"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="0"
+            android:textAppearance="?android:attr/textAppearanceSmall"
+            android:typeface="monospace" />
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/servoAngleTextView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignLeft="@+id/linearLayout1"
+        android:layout_below="@+id/linearLayout1"
+        android:layout_marginTop="22dp"
+        android:text="@string/servo_angle" />
+
+    <SeekBar
+        android:id="@+id/servoAngleBar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignLeft="@+id/servoAngleTextView"
+        android:layout_below="@+id/servoAngleTextView"
+        android:max="1000"
+        android:progress="500" />
 
     <Button
         android:id="@+id/breaksButton"
@@ -163,32 +134,39 @@
         android:text="@string/breaks" />
 
     <SeekBar
-        android:id="@+id/seekBarMotor"
+        android:id="@+id/throttleBar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_above="@+id/breaksButton"
-        android:layout_alignLeft="@+id/textViewThrottle"
-        android:layout_marginBottom="41dp"
+        android:layout_alignParentLeft="true"
+        android:layout_below="@+id/textViewThrottle"
         android:max="1000"
         android:progress="500"
         android:scrollbarAlwaysDrawVerticalTrack="false" />
 
     <TextView
-        android:id="@+id/servoValueText"
+        android:id="@+id/textViewThrottle"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_above="@+id/seekBar1"
-        android:layout_marginLeft="5dp"
-        android:layout_toRightOf="@+id/textView1"
-        android:text="90" />
+        android:layout_alignLeft="@+id/throttleBar"
+        android:layout_below="@+id/servoAngleBar"
+        android:layout_marginTop="22dp"
+        android:text="@string/throttle" />
+
+    <TextView
+        android:id="@+id/textView03"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignLeft="@+id/throttleBar"
+        android:layout_below="@+id/throttleBar"
+        android:layout_marginTop="22dp"
+        android:text="@string/low_pass_filter" />
 
     <SeekBar
-        android:id="@+id/seekBar2"
+        android:id="@+id/lowPassFilterBar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_above="@+id/textViewThrottleValue"
-        android:layout_alignLeft="@+id/textView03"
-        android:layout_marginBottom="23dp"
+        android:layout_alignParentLeft="true"
+        android:layout_below="@+id/lowPassFilterValueText"
         android:max="100"
         android:progress="50" />
 

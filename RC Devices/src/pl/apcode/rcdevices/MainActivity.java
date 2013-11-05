@@ -1,38 +1,25 @@
 package pl.apcode.rcdevices;
 
-import java.io.IOException;
-import java.io.OutputStream;
-import java.lang.reflect.Method;
-import java.util.UUID;
-
-
 import  pl.apcode.rcdevices.R;
 import pl.apcode.rcdevices.communication.BluetoothLinkService;
 import pl.apcode.rcdevices.communication.BluetoothLinkService.LocalBinder;
-import android.R.string;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.preference.PreferenceManager;
 import android.app.Activity;
-import android.bluetooth.BluetoothAdapter;
-import android.bluetooth.BluetoothDevice;
-import android.bluetooth.BluetoothSocket;
 import android.content.ComponentName;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.content.SharedPreferences;
-import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.View.OnTouchListener;
-import android.view.animation.BounceInterpolator;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
@@ -49,29 +36,30 @@ public class MainActivity extends Activity implements OnSeekBarChangeListener, O
     boolean mBound = false;
 
 	
-	private SeekBar bar,bar2,throttleBar;
+	private SeekBar servoAngleBar,lowPassFilterBar,throttleBar;
 	private TextView angleValueText;
 	private TextView lowFilterPassValueText;
 	private TextView throttleValueText; 
 	private TextView xRot, yRot, zRot;
 	
-	private CheckBox useSensorsCheckBox;
 	private Button breaksButon, setRotRef; 
 	
 	private int angleMin = 0;
 	private int angleMax = 180;
 	private int angleCenter = 90;
+	private int throttleDeadZone = 20;
 	
 	private SensorManager mSensorManager;
     private Sensor mAccelerometer;
 
     private boolean mInitAccelerometer = true;
+    private boolean mDriving = false;
     private double[] mAccVector = new double[3]; //gravity
     private double[] mAccAngle = new double[3];
     private double[] mAccAngleRef = new double[3];
     private double[] mAccAngleFiltered = new double[3];
 
-	private volatile float filterSensivity = 0.1f;
+	private volatile float filterSensivity = 0.15f;
 
 
 	  
@@ -85,23 +73,21 @@ public class MainActivity extends Activity implements OnSeekBarChangeListener, O
 			lowFilterPassValueText.setText(String.format("%.2f", filterSensivity ));
 			throttleValueText = (TextView)findViewById(R.id.textViewThrottleValue);
 			
-			bar = (SeekBar)findViewById(R.id.seekBar1);
-			bar.setOnSeekBarChangeListener(this);
+			servoAngleBar = (SeekBar)findViewById(R.id.servoAngleBar);
+			servoAngleBar.setOnSeekBarChangeListener(this);
 			
-			bar2 = (SeekBar)findViewById(R.id.seekBar2);
-			bar2.setOnSeekBarChangeListener(this);
-			bar2.setProgress(  (int)(filterSensivity * 100) );
+			lowPassFilterBar = (SeekBar)findViewById(R.id.lowPassFilterBar);
+			lowPassFilterBar.setOnSeekBarChangeListener(this);
+			lowPassFilterBar.setProgress(  (int)(filterSensivity * 100) );
 			
-			throttleBar = (SeekBar)findViewById(R.id.seekBarMotor);
+			throttleBar = (SeekBar)findViewById(R.id.throttleBar);
 			throttleBar.setOnSeekBarChangeListener(this);
 			
-			useSensorsCheckBox = (CheckBox)findViewById(R.id.useSensorsCheckBox);
-			useSensorsCheckBox.setOnCheckedChangeListener(this);
 			
 			breaksButon = (Button)findViewById(R.id.breaksButton);
 			breaksButon.setOnTouchListener(this);
 			
-			setRotRef = (Button)findViewById(R.id.setRotRefButton);
+			setRotRef = (Button)findViewById(R.id.driveButton);
 			setRotRef.setOnTouchListener(this);
 						
 		    mSensorManager = (SensorManager)getSystemService(SENSOR_SERVICE);
@@ -124,8 +110,10 @@ public class MainActivity extends Activity implements OnSeekBarChangeListener, O
 		super.onStart();
 		SharedPreferences sharedPrefs = PreferenceManager.getDefaultSharedPreferences(this);
 		angleMin = Integer.parseInt(sharedPrefs.getString("servo-min", "0"));
-		angleMax = Integer.parseInt(sharedPrefs.getString("servo-max", "180"));	
-		angleCenter = calculateAngle(500);
+		angleMax = Integer.parseInt(sharedPrefs.getString("servo-max", "180"));
+		throttleDeadZone = Integer.parseInt(sharedPrefs.getString("throttle-dead-zone", "20"));
+		
+		angleCenter = calculateServoAngle(500);
 		angleValueText.setText(Integer.toString(angleCenter));
 		
 		mInitAccelerometer = true;
@@ -169,7 +157,7 @@ public class MainActivity extends Activity implements OnSeekBarChangeListener, O
     		mService.sendData(data);
     }
 	
-    public int calculateProg(int  angleValue) {
+    public int calculateServoProg(int  angleValue) {
         int prg=Math.round((angleValue-angleMin)*1000.0f/(angleMax - angleMin));
     	if(prg<0)
     		prg=0;
@@ -179,7 +167,7 @@ public class MainActivity extends Activity implements OnSeekBarChangeListener, O
     	return prg;
     }
     
-	public int calculateAngle(int progValue) {
+	public int calculateServoAngle(int progValue) {
 		return Math.round((angleMax - angleMin) * progValue / 1000.0f + angleMin);	
 	}
 	
@@ -197,38 +185,44 @@ public class MainActivity extends Activity implements OnSeekBarChangeListener, O
     	return prg;
 	}
 	
+	public void updateMotor(int throttle) {
+		
+		throttleValueText.setText(Integer.toString(throttle));
+
+		if(throttle<-1*throttleDeadZone)
+			sendData("r#" + Integer.toString(Math.abs(throttle)) + ";");
+		else if (throttle > throttleDeadZone)
+			sendData("f#" + Integer.toString(throttle) + ";");
+		else
+			sendData("b;");
+		
+	}
+	
+	public void updateServo(int angle) {
+		angleValueText.setText(Integer.toString(angle));
+		sendData("s#" + Integer.toString(angle) + ";");	
+	}
+	
+	
 	@Override
 	public void onProgressChanged(SeekBar seekBar, int progress,
 			boolean fromUser) {
 		
-		if(seekBar.getId() == R.id.seekBar1) {
-		int angle = calculateAngle(progress);
-		angleValueText.setText(Integer.toString(angle));
-		sendData("s#" + Integer.toString(angle) + ";");
+		if(!mDriving) {
+			if(seekBar.getId() == R.id.servoAngleBar)
+				updateServo( calculateServoAngle(progress) );
+			else if( seekBar.getId() == R.id.throttleBar)	
+				updateMotor( calculateThrottle(progress) );	
 		}
-		else if(seekBar.getId() == R.id.seekBar2) {
-			
+		
+		if(seekBar.getId() == R.id.lowPassFilterBar) {
 			filterSensivity = progress / 100.0f;
-			lowFilterPassValueText.setText(String.format("%.2f", filterSensivity ));
-				
-		}else if( seekBar.getId() == R.id.seekBarMotor) {
-			updateMotor();
+			lowFilterPassValueText.setText(String.format("%.2f", filterSensivity ));	
 		}
 			
 		
 	}
 	
-	
-	public void updateMotor() {
-		int throttle = calculateThrottle(throttleBar.getProgress());
-		throttleValueText.setText(Integer.toString(throttle));
-
-		if(throttle<0)
-			sendData("r#" + Integer.toString(Math.abs(throttle)) + ";");
-		else
-			sendData("f#" + Integer.toString(throttle) + ";");
-		
-	}
 	
 
 	@Override
@@ -274,83 +268,44 @@ public class MainActivity extends Activity implements OnSeekBarChangeListener, O
 			double y = mAccAngleFiltered[1] - mAccAngleRef[1];
 			double z = mAccAngleFiltered[2] - mAccAngleRef[2];
 			
-        	xRot.setText(String.format("%.0f", x));
-        	yRot.setText(String.format("%.0f", y));
-        	zRot.setText(String.format("%.0f", z));
+        	xRot.setText(String.format("%3.0f", x));
+        	yRot.setText(String.format("%3.0f", y));
+        	zRot.setText(String.format("%3.0f", z));
         	
-        	if(useSensorsCheckBox.isChecked()) {
-        		bar.setProgress(calculateProg(angleCenter + (int)Math.round(x*1.5) ));
-        		throttleBar.setProgress(calculateThrottleProgres((int)Math.round(y*13)));
+        	int angle = angleCenter + (int)Math.round(x*1.5);
+        	int throttle = (int)Math.round(y*10);
+        	
+        	if(mDriving) {
+        		updateMotor(throttle);
+        		updateServo(angle);
+        		
+        		throttleBar.setProgress(calculateThrottleProgres(throttle));
+        		servoAngleBar.setProgress(calculateServoProg(angle));
         	}
 			
 		}
 		
-		/*
-        if (event.sensor == mAccelerometer) {
-            System.arraycopy(event.values, 0, mLastAccelerometer, 0, event.values.length);
-            mLastAccelerometerSet = true;
-        } else if (event.sensor == mMagnetometer) {
-            System.arraycopy(event.values, 0, mLastMagnetometer, 0, event.values.length);
-            mLastMagnetometerSet = true;
-        }
-        if (mLastAccelerometerSet && mLastMagnetometerSet) {
-            if(SensorManager.getRotationMatrix(mR, null, mLastAccelerometer, mLastMagnetometer)) {
-            	if(mRef == null)
-            		mRef = mR.clone();
-            	
-            	SensorManager.getAngleChange(mAngleChange, mR, mRef);
-            	mAngleChangeFiltered = lowPass(mAngleChange, mAngleChangeFiltered);
-            	//z,x,y
-            	double x,y,z;
-            	x = Math.toDegrees(mAngleChangeFiltered[1]);
-            	y = Math.toDegrees(mAngleChangeFiltered[2]);
-            	z = Math.toDegrees(mAngleChangeFiltered[0]);
-            	
-            	xRot.setText(String.format("%.1f", x) );
-            	yRot.setText(String.format("%.1f", y) );
-            	zRot.setText(String.format("%.1f", z));
-            	
-            	if(useSensorsCheckBox.isChecked()) {
-            		bar.setProgress(calculateProg(angleCenter + (int)Math.round(y*1.5) ));
-            		throttleBar.setProgress(calculateThrottleProgres((int)Math.round(x*11)));
-            	}
-            }
-        }*/
 	}
 
 
 	protected double[] lowPass( double[] input, double[] output ) {
 	    
-		if ( output == null ) 
-		{
+		if ( output == null ) {
 			output = input.clone();
 	    	return output;
 	    	
 		}
 
-	    
-	    
-	    for ( int i=0; i<input.length; i++ ) {
+	    for ( int i=0; i<input.length; i++ )
 	        output[i] = output[i] + filterSensivity * (input[i] - output[i]);        
-	    }
-	    
-
+	   
 	    return output;
 	}
 
 	
 	@Override
 	public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-		// TODO Auto-generated method stub
-		
-		if(buttonView.getId() == R.id.useSensorsCheckBox) {
-			if(isChecked) {
-				mInitAccelerometer = true;
-			}
-		} else {
-			updateMotor();
-		}
-		
+
 	}
 	
 	
@@ -386,21 +341,30 @@ public class MainActivity extends Activity implements OnSeekBarChangeListener, O
 		outAngle[2] = Math.toDegrees(Math.acos(normVector[2]));
 	}
 	
+	private void breakVehicle() {
+		mDriving=false;
+		sendData("b;");
+		throttleBar.setProgress(500);
+		servoAngleBar.setProgress(500);
+	}
+	
 	
 	@Override
 	public boolean onTouch(View v, MotionEvent event) {
 		
 		if(v.getId() == R.id.breaksButton) {
+			if(event.getAction() == MotionEvent.ACTION_DOWN)
+				breakVehicle();
+		} else if(v.getId() == R.id.driveButton) {
 			if(event.getAction() == MotionEvent.ACTION_DOWN) {
-				useSensorsCheckBox.setChecked(false);
-				sendData("b;");
-				throttleBar.setProgress(500);
-				bar.setProgress(500);
-				return false;
+				if(!mDriving) {
+					mInitAccelerometer = true;
+					mDriving = true;
+				}
 			}
-		} else if(v.getId() == R.id.setRotRefButton) {
+			else if(event.getAction() == MotionEvent.ACTION_UP)
+				breakVehicle();
 			
-			mInitAccelerometer = true;
 		}
 		return false;
 	}

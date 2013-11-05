@@ -9,7 +9,7 @@
     <string name="use_sensors">Użyj czujników</string>
     <string name="low_pass_filter">Filtr dolnoprzepustowy: </string>
     
-    <string name="throttle">Gaz:</string>
+    <string name="throttle">Przepustnica:</string>
     <string name="reverse">Wsteczny</string>
     <string name="breaks">Hamulec</string>
 
@@ -17,6 +17,8 @@
     <string name="btlink_connected">Bluetooth - połączono!</string>
     <string name="btlink_unabletoconnect">Brak połączenia ze zdalnym urządzeniem bluetooth</string>
     
-    <string name="set_rot_ref">Ust. odniesienie</string>
+    <string name="hold_drive">Przytrzymaj aby kierować</string>
+
+    <string name="throttle_dead_zone">Martwa strefa przepustnicy</string>
     
 </resources>

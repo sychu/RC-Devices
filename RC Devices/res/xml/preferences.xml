@@ -8,4 +8,6 @@
     <EditTextPreference android:key="bt-address" android:title="@string/device_address" android:defaultValue="20:13:07:01:05:40"></EditTextPreference>
     <EditTextPreference android:key="servo-min" android:title="@string/servo_min" android:defaultValue="68" android:inputType="number"></EditTextPreference>
     <EditTextPreference android:key="servo-max" android:title="@string/servo_max" android:defaultValue="115" android:inputType="number"></EditTextPreference>
+    <EditTextPreference android:key="throttle-dead-zone" android:title="@string/throttle_dead_zone" android:defaultValue="20" android:inputType="number"></EditTextPreference>
+    
 </PreferenceScreen>

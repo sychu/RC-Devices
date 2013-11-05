@@ -20,6 +20,9 @@
     <string name="btlink_unabletoconnect">Unable to connect remote bluetooth device!</string>
     <string name="title_activity_car">Car</string>
     <string name="hello_world">Hello world!</string>
-    <string name="set_rot_ref">Set rot. reference</string>
+    <string name="hold_drive">Hold to drive</string>
+    
+    <string name="throttle_dead_zone">Throttle dead zone</string>
+    
 
 </resources>

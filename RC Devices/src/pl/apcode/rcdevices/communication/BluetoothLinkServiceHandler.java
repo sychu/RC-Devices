@@ -109,7 +109,7 @@ public class BluetoothLinkServiceHandler extends Handler {
 		    try {
 		      outStream.write(msgBuffer);
 		    } catch (IOException e) {
-		      isConnected = false;
+		      onServiceOFFline();
 		      retryConnection();
 		      EventLogger.e(tag, "Write to bluetooth output stream FAIL!", e);
 		    }
