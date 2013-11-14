@@ -344,6 +344,7 @@ public class MainActivity extends Activity implements OnSeekBarChangeListener, O
 	private void breakVehicle() {
 		mDriving=false;
 		sendData("b;");
+		sendData("bv;");
 		throttleBar.setProgress(500);
 		servoAngleBar.setProgress(500);
 	}

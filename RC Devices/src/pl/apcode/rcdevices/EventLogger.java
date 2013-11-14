@@ -6,7 +6,7 @@ import android.util.Log;
 public class EventLogger {
 	
 	public static void e(String tag, String msg) {
-		e(msg, null);
+		Log.e(tag, msg);
 	}
 	
 	public static void e(String tag, String msg, Exception ex) {

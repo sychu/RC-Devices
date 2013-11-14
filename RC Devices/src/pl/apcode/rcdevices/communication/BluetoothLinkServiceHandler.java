@@ -16,6 +16,7 @@ import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
 import android.content.Context;
 import android.content.Intent;
+import android.content.ReceiverCallNotAllowedException;
 import android.content.SharedPreferences;
 import android.content.res.Resources;
 import android.os.Build;
@@ -261,6 +262,10 @@ public class BluetoothLinkServiceHandler extends Handler {
 	      return  device.createRfcommSocketToServiceRecord(SSP_UUID);
 	}
 	
+	private void startReceiver() {
+		BluetoothLinkReceiver th = new BluetoothLinkReceiver(btSocket, this);
+		th.start();
+	}
 	
 
 	  private boolean connect()
@@ -327,7 +332,7 @@ public class BluetoothLinkServiceHandler extends Handler {
 		    	return false;
 		  }
 		  
-		  
+		  startReceiver();
 		  onServiceONLine();
 		  return true;
 	  }
