@@ -172,6 +172,7 @@ public class BluetoothLinkServiceHandler extends Handler {
     				R.drawable.ic_stat_notify_btconnected, 
     				null, 
     				R.string.btlink_connected);
+			obtainMessage(MsgType.SEND, ".;").sendToTarget(); //tick
 	 }
 	 
 	 private void onServiceOFFline() {
@@ -263,7 +264,7 @@ public class BluetoothLinkServiceHandler extends Handler {
 	}
 	
 	private void startReceiver() {
-		BluetoothLinkReceiver th = new BluetoothLinkReceiver(btSocket, this);
+		BluetoothLinkReceiver th = new BluetoothLinkReceiver(btSocket, this, ctx);
 		th.start();
 	}
 	
@@ -332,6 +333,7 @@ public class BluetoothLinkServiceHandler extends Handler {
 		    	return false;
 		  }
 		  
+		  cleanUpQueue();
 		  startReceiver();
 		  onServiceONLine();
 		  return true;

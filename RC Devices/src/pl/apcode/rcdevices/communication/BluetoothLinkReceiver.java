@@ -10,7 +10,10 @@ import java.io.InputStreamReader;
 import java.io.InterruptedIOException;
 import java.net.SocketException;
 
+import android.app.Application;
 import android.bluetooth.BluetoothSocket;
+import android.content.Context;
+import android.content.Intent;
 import android.os.Handler;
 
 public class BluetoothLinkReceiver extends Thread {
@@ -18,16 +21,17 @@ public class BluetoothLinkReceiver extends Thread {
         
 	    private final Handler h;
         private final BluetoothSocket socket;
+        private final Context ctx;
         private byte[] buffer = new byte[256];  // buffer store for the stream
         int cmdPos = 0;
         
         private InputStream inStream;
         
-        public BluetoothLinkReceiver(BluetoothSocket socket, Handler serviceHandler) {
+        public BluetoothLinkReceiver(BluetoothSocket socket, Handler serviceHandler, Context ctx) {
             super(tag);
         	this.socket = socket;
+        	this.ctx = ctx;
             h=serviceHandler;
-            
         }
       
 
@@ -42,6 +46,11 @@ public class BluetoothLinkReceiver extends Thread {
         	if(cmdPos > 0) {
         		String cmd = new String(buffer, 0, cmdPos);
         		EventLogger.d(tag, "Command from Arduino: " + cmd);
+        		
+		        Intent intent = new Intent(BluetoothLinkService.RECEIVED_CMD);
+		        
+		        intent.putExtra("ReceiverData", cmd);
+		        ctx.sendBroadcast(intent); 
         	}
         }
         

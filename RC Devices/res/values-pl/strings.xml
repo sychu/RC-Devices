@@ -12,6 +12,7 @@
     <string name="throttle">Przepustnica:</string>
     <string name="reverse">Wsteczny</string>
     <string name="breaks">Hamulec</string>
+    <string name="stop">Stop</string>
 
     <string name="btlink_connecting">Bluetooth - łączenie…</string>
     <string name="btlink_connected">Bluetooth - połączono!</string>

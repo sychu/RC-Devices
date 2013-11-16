@@ -26,6 +26,7 @@
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+		
         </activity>
 
         <service android:name="pl.apcode.rcdevices.communication.BluetoothLinkService" />
@@ -38,6 +39,9 @@
             android:name="pl.apcode.rcdevices.Car"
             android:label="@string/title_activity_car" >
         </activity>
+        
+
+
     </application>
 
 </manifest>

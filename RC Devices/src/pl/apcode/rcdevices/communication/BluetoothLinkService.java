@@ -36,6 +36,8 @@ public class BluetoothLinkService extends Service {
 
 	public static final String tag = BluetoothLinkService.class.getSimpleName();
 	
+	public static final String RECEIVED_CMD = "pl.apcode.rcdevices.communication.RECEIVED_CMD";
+	
 	private Looper mServiceLooper;
 	private BluetoothLinkServiceHandler mServiceHandler;
 	private final IBinder mBinder = new LocalBinder();

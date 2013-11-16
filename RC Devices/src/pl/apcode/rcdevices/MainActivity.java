@@ -1,6 +1,8 @@
 package pl.apcode.rcdevices;
 
 import  pl.apcode.rcdevices.R;
+import pl.apcode.rcdevices.EventLogger;
+import pl.apcode.rcdevices.communication.BluetoothLinkReceiver;
 import pl.apcode.rcdevices.communication.BluetoothLinkService;
 import pl.apcode.rcdevices.communication.BluetoothLinkService.LocalBinder;
 import android.hardware.Sensor;
@@ -11,8 +13,11 @@ import android.os.Bundle;
 import android.os.IBinder;
 import android.preference.PreferenceManager;
 import android.app.Activity;
+import android.content.BroadcastReceiver;
 import android.content.ComponentName;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.view.Menu;
@@ -32,6 +37,8 @@ import android.widget.Toast;
 
 public class MainActivity extends Activity implements OnSeekBarChangeListener, OnCheckedChangeListener, SensorEventListener, OnTouchListener {
 
+	public static final String tag = MainActivity.class.getSimpleName();
+	 
     BluetoothLinkService mService;
     boolean mBound = false;
 
@@ -54,55 +61,86 @@ public class MainActivity extends Activity implements OnSeekBarChangeListener, O
 
     private boolean mInitAccelerometer = true;
     private boolean mDriving = false;
+    private boolean mFullStop = true;
     private double[] mAccVector = new double[3]; //gravity
     private double[] mAccAngle = new double[3];
     private double[] mAccAngleRef = new double[3];
     private double[] mAccAngleFiltered = new double[3];
 
 	private volatile float filterSensivity = 0.15f;
+	private BTReceiver myBTReceiver;
 
 
+	private class BTReceiver extends BroadcastReceiver {
+
+		private void handleCmd(String cmd) {
+			try {
+			String[] cmdParts = cmd.split("#");
+
+			if(cmdParts.length > 1 && cmdParts[0].equals("bat"))
+				setBatVoltage(Float.valueOf(cmdParts[1]));
+			} catch (Exception ex) {
+				EventLogger.e(tag, "BrodcastReceiver handle command failed!", ex);
+			}
+		}
+		
+		@Override
+		public void onReceive(Context ctx, Intent intent) {
+			
+			String cmd = intent.getStringExtra("ReceiverData");
+			handleCmd(cmd);
+		}
+		
+	}
 	  
-		@Override
-		protected void onCreate(Bundle savedInstanceState) {
-			super.onCreate(savedInstanceState);
-			setContentView(R.layout.activity_main);			
-			
-			angleValueText = (TextView)findViewById(R.id.servoValueText);
-			lowFilterPassValueText = (TextView)findViewById(R.id.lowPassFilterValueText);
-			lowFilterPassValueText.setText(String.format("%.2f", filterSensivity ));
-			throttleValueText = (TextView)findViewById(R.id.textViewThrottleValue);
-			
-			servoAngleBar = (SeekBar)findViewById(R.id.servoAngleBar);
-			servoAngleBar.setOnSeekBarChangeListener(this);
-			
-			lowPassFilterBar = (SeekBar)findViewById(R.id.lowPassFilterBar);
-			lowPassFilterBar.setOnSeekBarChangeListener(this);
-			lowPassFilterBar.setProgress(  (int)(filterSensivity * 100) );
-			
-			throttleBar = (SeekBar)findViewById(R.id.throttleBar);
-			throttleBar.setOnSeekBarChangeListener(this);
-			
-			
-			breaksButon = (Button)findViewById(R.id.breaksButton);
-			breaksButon.setOnTouchListener(this);
-			
-			setRotRef = (Button)findViewById(R.id.driveButton);
-			setRotRef.setOnTouchListener(this);
-						
-		    mSensorManager = (SensorManager)getSystemService(SENSOR_SERVICE);
-	        mAccelerometer = mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
-	        
-	        xRot = (TextView)findViewById(R.id.xTextView);
-	        yRot = (TextView)findViewById(R.id.yTextView);
-	        zRot = (TextView)findViewById(R.id.zTextView);
-		}
+	
+	protected void setBatVoltage(float voltage) {
+		setTitle(getResources().getString(R.string.app_name) +  String.format(" | %.2f V", voltage) );
+	}
+	
 
-		@Override
-		protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-			// TODO Auto-generated method stub
-			super.onActivityResult(requestCode, resultCode, data);
-		}
+	@Override
+	protected void onCreate(Bundle savedInstanceState) {
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.activity_main);			
+		
+		angleValueText = (TextView)findViewById(R.id.servoValueText);
+		lowFilterPassValueText = (TextView)findViewById(R.id.lowPassFilterValueText);
+		lowFilterPassValueText.setText(String.format("%.2f", filterSensivity ));
+		throttleValueText = (TextView)findViewById(R.id.textViewThrottleValue);
+		
+		servoAngleBar = (SeekBar)findViewById(R.id.servoAngleBar);
+		servoAngleBar.setOnSeekBarChangeListener(this);
+		
+		lowPassFilterBar = (SeekBar)findViewById(R.id.lowPassFilterBar);
+		lowPassFilterBar.setOnSeekBarChangeListener(this);
+		lowPassFilterBar.setProgress(  (int)(filterSensivity * 100) );
+		
+		throttleBar = (SeekBar)findViewById(R.id.throttleBar);
+		throttleBar.setOnSeekBarChangeListener(this);
+		
+		
+		breaksButon = (Button)findViewById(R.id.breaksButton);
+		breaksButon.setOnTouchListener(this);
+		
+		setRotRef = (Button)findViewById(R.id.driveButton);
+		setRotRef.setOnTouchListener(this);
+					
+	    mSensorManager = (SensorManager)getSystemService(SENSOR_SERVICE);
+        mAccelerometer = mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+        
+        xRot = (TextView)findViewById(R.id.xTextView);
+        yRot = (TextView)findViewById(R.id.yTextView);
+        zRot = (TextView)findViewById(R.id.zTextView);
+        
+        myBTReceiver = new BTReceiver();
+	}
+
+	@Override
+	protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+		// TODO Auto-generated method stub
+		super.onActivityResult(requestCode, resultCode, data);
+	}
 		
 	@Override
 	protected void onStart() {
@@ -118,12 +156,18 @@ public class MainActivity extends Activity implements OnSeekBarChangeListener, O
 		
 		mInitAccelerometer = true;
         mSensorManager.registerListener(this, mAccelerometer, SensorManager.SENSOR_DELAY_GAME);
+        
+        IntentFilter filter = new IntentFilter(BluetoothLinkService.RECEIVED_CMD);
+        registerReceiver(myBTReceiver, filter);
 	}
 	
 	@Override
 	protected void onStop() {
-		super.onStop();
+		sendData("b;");
         mSensorManager.unregisterListener(this);
+        unregisterReceiver(myBTReceiver);
+        btServiceUnbind();
+        super.onStop();
 	}
 	
 	@Override
@@ -319,6 +363,18 @@ public class MainActivity extends Activity implements OnSeekBarChangeListener, O
 	}
 	
 	
+	private void btServiceBind() {
+		
+		
+	}
+	
+	private void btServiceUnbind() {
+    	if(mBound) {
+    		unbindService(mConnection);
+    		mBound = false;
+    	}
+	}
+	
 	@Override
 	public boolean onOptionsItemSelected(MenuItem item) {
 	    // Handle item selection
@@ -335,10 +391,7 @@ public class MainActivity extends Activity implements OnSeekBarChangeListener, O
 	    case R.id.disconnect:
 	    	Intent istop = new Intent(this, BluetoothLinkService.class);
 	    	stopService(istop);
-	    	if(mBound) {
-	    		unbindService(mConnection);
-	    		mBound = false;
-	    	}
+	    	btServiceUnbind();
 	    	return true;
 	    default:
 	        return super.onOptionsItemSelected(item);
@@ -351,12 +404,18 @@ public class MainActivity extends Activity implements OnSeekBarChangeListener, O
 		outAngle[2] = Math.toDegrees(Math.acos(normVector[2]));
 	}
 	
-	private void breakVehicle() {
+	private void fullStop() {
 		mDriving=false;
+		mFullStop = true;
 		sendData("b;");
-		sendData("bv;");
 		throttleBar.setProgress(500);
 		servoAngleBar.setProgress(500);
+	}
+	
+	
+	private void handbreakVehicle() {
+		mDriving=false;
+		sendData("b;");
 	}
 	
 	
@@ -365,16 +424,17 @@ public class MainActivity extends Activity implements OnSeekBarChangeListener, O
 		
 		if(v.getId() == R.id.breaksButton) {
 			if(event.getAction() == MotionEvent.ACTION_DOWN)
-				breakVehicle();
+				fullStop();
 		} else if(v.getId() == R.id.driveButton) {
 			if(event.getAction() == MotionEvent.ACTION_DOWN) {
-				if(!mDriving) {
+				mDriving = true;
+				if(mFullStop) {
 					mInitAccelerometer = true;
-					mDriving = true;
+					mFullStop = false;
 				}
 			}
 			else if(event.getAction() == MotionEvent.ACTION_UP)
-				breakVehicle();
+				handbreakVehicle();
 			
 		}
 		return false;
