@@ -24,6 +24,8 @@
     <string name="hold_drive">Hold to drive</string>
     
     <string name="throttle_dead_zone">Throttle dead zone</string>
+    <string name="servo_rate">Servo rate</string>
+    <string name="throttle_rate">Throttle rate</string>
     
 
 </resources>

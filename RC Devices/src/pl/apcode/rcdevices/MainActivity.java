@@ -43,11 +43,12 @@ public class MainActivity extends Activity implements OnSeekBarChangeListener, O
     boolean mBound = false;
 
 	
-	private SeekBar servoAngleBar,lowPassFilterBar,throttleBar;
+	private SeekBar servoAngleBar,lowPassFilterBar,throttleBar, servoRateBar, throttleRateBar;
 	private TextView angleValueText;
 	private TextView lowFilterPassValueText;
 	private TextView throttleValueText; 
 	private TextView xRot, yRot, zRot;
+	private TextView servoRateValueText, throttleRateValueText;
 	
 	private Button breaksButon, setRotRef; 
 	
@@ -55,6 +56,9 @@ public class MainActivity extends Activity implements OnSeekBarChangeListener, O
 	private int angleMax = 180;
 	private int angleCenter = 90;
 	private int throttleDeadZone = 20;
+	private double servoRate = 5;
+	private double throttleRate = 5;
+	
 	
 	private SensorManager mSensorManager;
     private Sensor mAccelerometer;
@@ -67,7 +71,7 @@ public class MainActivity extends Activity implements OnSeekBarChangeListener, O
     private double[] mAccAngleRef = new double[3];
     private double[] mAccAngleFiltered = new double[3];
 
-	private volatile float filterSensivity = 0.15f;
+	private volatile float filterSensivity = 0.2f;
 	private BTReceiver myBTReceiver;
 
 
@@ -109,6 +113,9 @@ public class MainActivity extends Activity implements OnSeekBarChangeListener, O
 		lowFilterPassValueText.setText(String.format("%.2f", filterSensivity ));
 		throttleValueText = (TextView)findViewById(R.id.textViewThrottleValue);
 		
+		servoRateValueText = (TextView)findViewById(R.id.servoRateValueText);
+		throttleRateValueText = (TextView)findViewById(R.id.throttleRateValueText);
+		
 		servoAngleBar = (SeekBar)findViewById(R.id.servoAngleBar);
 		servoAngleBar.setOnSeekBarChangeListener(this);
 		
@@ -119,6 +126,11 @@ public class MainActivity extends Activity implements OnSeekBarChangeListener, O
 		throttleBar = (SeekBar)findViewById(R.id.throttleBar);
 		throttleBar.setOnSeekBarChangeListener(this);
 		
+		throttleRateBar = (SeekBar)findViewById(R.id.throttleRateSeekBar);
+		throttleRateBar.setOnSeekBarChangeListener(this);
+		
+		servoRateBar = (SeekBar)findViewById(R.id.servoRateSeekBar);
+		servoRateBar.setOnSeekBarChangeListener(this);
 		
 		breaksButon = (Button)findViewById(R.id.breaksButton);
 		breaksButon.setOnTouchListener(this);
@@ -141,6 +153,15 @@ public class MainActivity extends Activity implements OnSeekBarChangeListener, O
 		// TODO Auto-generated method stub
 		super.onActivityResult(requestCode, resultCode, data);
 	}
+	
+	private int rateProgress(double rateValue) {
+		return (int)((rateValue - 1) * 10);
+	}
+	
+	private double rateValue(int progress) {
+		return (progress / 10.0d) + 1;
+	}
+	
 		
 	@Override
 	protected void onStart() {
@@ -154,8 +175,14 @@ public class MainActivity extends Activity implements OnSeekBarChangeListener, O
 		angleCenter = calculateServoAngle(500);
 		angleValueText.setText(Integer.toString(angleCenter));
 		
+		
+		servoRateBar.setProgress(rateProgress(servoRate));
+		throttleRateBar.setProgress(rateProgress(throttleRate));
+		
 		mInitAccelerometer = true;
         mSensorManager.registerListener(this, mAccelerometer, SensorManager.SENSOR_DELAY_GAME);
+        
+        
         
         IntentFilter filter = new IntentFilter(BluetoothLinkService.RECEIVED_CMD);
         registerReceiver(myBTReceiver, filter);
@@ -272,6 +299,12 @@ public class MainActivity extends Activity implements OnSeekBarChangeListener, O
 		if(seekBar.getId() == R.id.lowPassFilterBar) {
 			filterSensivity = progress / 100.0f;
 			lowFilterPassValueText.setText(String.format("%.2f", filterSensivity ));	
+		} else if(seekBar.getId() == R.id.servoRateSeekBar ) {
+			servoRate = rateValue(progress);
+			servoRateValueText.setText(String.format("%.1f", servoRate));
+		} else if(seekBar.getId() == R.id.throttleRateSeekBar) {
+			throttleRate = rateValue(progress);
+			throttleRateValueText.setText(String.format("%.1f", throttleRate));
 		}
 			
 		
@@ -304,9 +337,9 @@ public class MainActivity extends Activity implements OnSeekBarChangeListener, O
 			float[] g = event.values;
 			double g_len = Math.sqrt(g[0]*g[0] + g[1]*g[1] + g[2]*g[2]);
 			
-			mAccVector[0] = g[0]; ///g_len;
-			mAccVector[1] = g[1]; ///g_len;
-			mAccVector[2] = g[2]; ///g_len;
+			mAccVector[0] = g[0]/g_len;
+			mAccVector[1] = g[1]/g_len;
+			mAccVector[2] = g[2]/g_len;
 			
 			//calculateAngle(mAccVector, mAccAngle);
 			
@@ -324,12 +357,12 @@ public class MainActivity extends Activity implements OnSeekBarChangeListener, O
 			double y = mAccAngleFiltered[1] - mAccAngleRef[1];
 			double z = mAccAngleFiltered[2] - mAccAngleRef[2];
 			
-        	xRot.setText(String.format("%2.1f", g[0]));
-        	yRot.setText(String.format("%2.1f", g[1]));
-        	zRot.setText(String.format("%2.1f", g[2]));
+        	xRot.setText(String.format("%4.1f", g[0]));
+        	yRot.setText(String.format("%4.1f", g[1]));
+        	zRot.setText(String.format("%4.1f", g[2]));
         	
-        	int angle = angleCenter - (int)Math.round(x*10);
-        	int throttle = (int)Math.round(-y*70);
+        	int angle = angleCenter - (int)Math.round(x*(angleMax-angleMin)/2*servoRate);
+        	int throttle = (int)Math.round(-y*255*throttleRate);
         	
         	if(mDriving) {
         		updateMotor(throttle);

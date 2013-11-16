@@ -105,7 +105,7 @@
         android:layout_height="wrap_content"
         android:layout_alignLeft="@+id/linearLayout1"
         android:layout_below="@+id/linearLayout1"
-        android:layout_marginTop="22dp"
+        android:layout_marginTop="18dp"
         android:text="@string/servo_angle" />
 
     <SeekBar
@@ -126,24 +126,6 @@
         android:max="1000"
         android:progress="500"
         android:scrollbarAlwaysDrawVerticalTrack="false" />
-
-    <TextView
-        android:id="@+id/textViewThrottle"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_alignLeft="@+id/throttleBar"
-        android:layout_below="@+id/servoAngleBar"
-        android:layout_marginTop="22dp"
-        android:text="@string/throttle" />
-
-    <TextView
-        android:id="@+id/textView03"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_alignLeft="@+id/throttleBar"
-        android:layout_below="@+id/throttleBar"
-        android:layout_marginTop="22dp"
-        android:text="@string/low_pass_filter" />
 
     <SeekBar
         android:id="@+id/lowPassFilterBar"
@@ -175,5 +157,82 @@
             android:layout_weight="1"
             android:text="@string/stop" />
     </LinearLayout>
+
+    <SeekBar
+        android:id="@+id/servoRateSeekBar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentLeft="true"
+        android:layout_below="@+id/textView1"
+        android:max="90"
+        android:progress="0" />
+
+    <SeekBar
+        android:id="@+id/throttleRateSeekBar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentLeft="true"
+        android:layout_below="@+id/textView2"
+        android:max="90"
+        android:progress="0" />
+
+    <TextView
+        android:id="@+id/textView03"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignLeft="@+id/lowPassFilterBar"
+        android:layout_below="@+id/throttleBar"
+        android:layout_marginTop="18dp"
+        android:text="@string/low_pass_filter" />
+
+    <TextView
+        android:id="@+id/textViewThrottle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignLeft="@+id/throttleBar"
+        android:layout_below="@+id/servoAngleBar"
+        android:layout_marginTop="18dp"
+        android:text="@string/throttle" />
+
+    <TextView
+        android:id="@+id/textView1"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignLeft="@+id/servoRateSeekBar"
+        android:layout_below="@+id/lowPassFilterBar"
+        android:layout_marginTop="18dp"
+        android:text="@string/servo_rate"
+        android:textAppearance="?android:attr/textAppearanceSmall" />
+
+    <TextView
+        android:id="@+id/textView2"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignLeft="@+id/throttleRateSeekBar"
+        android:layout_below="@+id/servoRateSeekBar"
+        android:layout_marginTop="18dp"
+        android:text="@string/throttle_rate"
+        android:textAppearance="?android:attr/textAppearanceSmall" />
+
+    <TextView
+        android:id="@+id/servoRateValueText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_above="@+id/servoRateSeekBar"
+        android:layout_marginLeft="5dp"
+        android:layout_toRightOf="@+id/textView1"
+        android:text="1.5"
+        android:textAppearance="?android:attr/textAppearanceSmall" />
+
+    <TextView
+        android:id="@+id/throttleRateValueText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignBaseline="@+id/textView2"
+        android:layout_alignBottom="@+id/textView2"
+        android:layout_marginLeft="5dp"
+        android:layout_toRightOf="@+id/textView2"
+        android:text="4.5"
+        android:textAppearance="?android:attr/textAppearanceSmall" />
 
 </RelativeLayout>

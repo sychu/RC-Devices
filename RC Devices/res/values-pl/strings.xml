@@ -22,4 +22,6 @@
 
     <string name="throttle_dead_zone">Martwa strefa przepustnicy</string>
     
+    <string name="servo_rate">Mnożnik serwa</string>
+    <string name="throttle_rate">Mnożnik przepustnicy</string>
 </resources>
