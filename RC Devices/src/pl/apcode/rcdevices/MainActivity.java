@@ -304,30 +304,32 @@ public class MainActivity extends Activity implements OnSeekBarChangeListener, O
 			float[] g = event.values;
 			double g_len = Math.sqrt(g[0]*g[0] + g[1]*g[1] + g[2]*g[2]);
 			
-			mAccVector[0] = g[0]/g_len;
-			mAccVector[1] = g[1]/g_len;
-			mAccVector[2] = g[2]/g_len;
+			mAccVector[0] = g[0]; ///g_len;
+			mAccVector[1] = g[1]; ///g_len;
+			mAccVector[2] = g[2]; ///g_len;
 			
-			calculateAngle(mAccVector, mAccAngle);
+			//calculateAngle(mAccVector, mAccAngle);
 			
 			if(mInitAccelerometer) {
 				mInitAccelerometer = false;
-				System.arraycopy(mAccAngle, 0, mAccAngleRef, 0, mAccAngle.length);
-				System.arraycopy(mAccAngle, 0, mAccAngleFiltered, 0, mAccAngle.length);
+				System.arraycopy(mAccVector, 0, mAccAngleRef, 0, mAccVector.length);
+				System.arraycopy(mAccVector, 0, mAccAngleFiltered, 0, mAccAngle.length);
+				//System.arraycopy(mAccAngle, 0, mAccAngleRef, 0, mAccAngle.length);
+				
 			} else {
-				lowPass(mAccAngle, mAccAngleFiltered);
+				lowPass(mAccVector, mAccAngleFiltered);
 			}
 			
 			double x = mAccAngleFiltered[0] - mAccAngleRef[0];
 			double y = mAccAngleFiltered[1] - mAccAngleRef[1];
 			double z = mAccAngleFiltered[2] - mAccAngleRef[2];
 			
-        	xRot.setText(String.format("%3.0f", x));
-        	yRot.setText(String.format("%3.0f", y));
-        	zRot.setText(String.format("%3.0f", z));
+        	xRot.setText(String.format("%.2f", g[0]));
+        	yRot.setText(String.format("%.2f", g[1]));
+        	zRot.setText(String.format("%.2f", g[2]));
         	
-        	int angle = angleCenter + (int)Math.round(x*1.5);
-        	int throttle = (int)Math.round(y*10);
+        	int angle = angleCenter - (int)Math.round(x*10);
+        	int throttle = (int)Math.round(-y*70);
         	
         	if(mDriving) {
         		updateMotor(throttle);
@@ -399,9 +401,9 @@ public class MainActivity extends Activity implements OnSeekBarChangeListener, O
 	}
 
 	private void calculateAngle(double[] normVector, double[] outAngle) {
-		outAngle[0] = Math.toDegrees(Math.acos(normVector[0]));
-		outAngle[1] = Math.toDegrees(Math.acos(normVector[1]));
-		outAngle[2] = Math.toDegrees(Math.acos(normVector[2]));
+		outAngle[0] = Math.toDegrees(Math.asin(normVector[0]));
+		outAngle[1] = Math.toDegrees(Math.asin(normVector[1]));
+		outAngle[2] = Math.toDegrees(Math.asin(normVector[2]));
 	}
 	
 	private void fullStop() {

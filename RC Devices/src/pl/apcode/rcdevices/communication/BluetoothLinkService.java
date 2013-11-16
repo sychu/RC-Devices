@@ -42,7 +42,6 @@ public class BluetoothLinkService extends Service {
 	private BluetoothLinkServiceHandler mServiceHandler;
 	private final IBinder mBinder = new LocalBinder();
 
-
     /**
      * Class used for the client Binder.  Because we know this service always
      * runs in the same process as its clients, we don't need to deal with IPC.
