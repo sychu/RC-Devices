@@ -56,8 +56,8 @@ public class MainActivity extends Activity implements OnSeekBarChangeListener, O
 	private int angleMax = 180;
 	private int angleCenter = 90;
 	private int throttleDeadZone = 20;
-	private double servoRate = 5;
-	private double throttleRate = 5;
+	private double servoRate = 4;
+	private double throttleRate = 3.5;
 	
 	
 	private SensorManager mSensorManager;
