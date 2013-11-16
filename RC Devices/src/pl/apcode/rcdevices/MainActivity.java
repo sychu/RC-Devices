@@ -324,9 +324,9 @@ public class MainActivity extends Activity implements OnSeekBarChangeListener, O
 			double y = mAccAngleFiltered[1] - mAccAngleRef[1];
 			double z = mAccAngleFiltered[2] - mAccAngleRef[2];
 			
-        	xRot.setText(String.format("%.2f", g[0]));
-        	yRot.setText(String.format("%.2f", g[1]));
-        	zRot.setText(String.format("%.2f", g[2]));
+        	xRot.setText(String.format("%2.1f", g[0]));
+        	yRot.setText(String.format("%2.1f", g[1]));
+        	zRot.setText(String.format("%2.1f", g[2]));
         	
         	int angle = angleCenter - (int)Math.round(x*10);
         	int throttle = (int)Math.round(-y*70);
