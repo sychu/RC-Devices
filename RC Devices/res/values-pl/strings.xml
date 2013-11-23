@@ -24,4 +24,7 @@
     
     <string name="servo_rate">Mnożnik serwa</string>
     <string name="throttle_rate">Mnożnik przepustnicy</string>
+    
+    <string name="servo_min">Minimalny kąt serwa</string>
+    <string name="servo_max">Maksymalny kąt serwa</string>
 </resources>

@@ -25,6 +25,7 @@ import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.View.OnTouchListener;
+import android.view.animation.BounceInterpolator;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
@@ -56,7 +57,7 @@ public class MainActivity extends Activity implements OnSeekBarChangeListener, O
 	private int angleMax = 180;
 	private int angleCenter = 90;
 	private int throttleDeadZone = 20;
-	private double servoRate = 4;
+	private double servoRate = 3.5;
 	private double throttleRate = 3.5;
 	
 	
@@ -106,6 +107,10 @@ public class MainActivity extends Activity implements OnSeekBarChangeListener, O
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
+		
+		
+		PreferenceManager.setDefaultValues(this, R.xml.preferences, false);
+		
 		setContentView(R.layout.activity_main);			
 		
 		angleValueText = (TextView)findViewById(R.id.servoValueText);
@@ -153,24 +158,19 @@ public class MainActivity extends Activity implements OnSeekBarChangeListener, O
 		// TODO Auto-generated method stub
 		super.onActivityResult(requestCode, resultCode, data);
 	}
-	
-	private int rateProgress(double rateValue) {
-		return (int)((rateValue - 1) * 10);
-	}
-	
-	private double rateValue(int progress) {
-		return (progress / 10.0d) + 1;
-	}
-	
+		
 		
 	@Override
 	protected void onStart() {
 		// TODO Auto-generated method stub
 		super.onStart();
 		SharedPreferences sharedPrefs = PreferenceManager.getDefaultSharedPreferences(this);
-		angleMin = Integer.parseInt(sharedPrefs.getString("servo-min", "0"));
-		angleMax = Integer.parseInt(sharedPrefs.getString("servo-max", "180"));
-		throttleDeadZone = Integer.parseInt(sharedPrefs.getString("throttle-dead-zone", "20"));
+		angleMin = Integer.parseInt(sharedPrefs.getString("servo-min", String.valueOf(angleMin)));
+		angleMax = Integer.parseInt(sharedPrefs.getString("servo-max",  String.valueOf(angleMax)));
+		throttleDeadZone = Integer.parseInt(sharedPrefs.getString("throttle-dead-zone", String.valueOf(throttleDeadZone)));
+		filterSensivity = Float.parseFloat(sharedPrefs.getString("low-pass-filter", String.valueOf(filterSensivity)));
+		throttleRate = Float.parseFloat(sharedPrefs.getString("throttle-rate", String.valueOf(throttleRate)));
+		servoRate = Float.parseFloat(sharedPrefs.getString("servo-rate", String.valueOf(servoRate)));
 		
 		angleCenter = calculateServoAngle(500);
 		angleValueText.setText(Integer.toString(angleCenter));
@@ -178,6 +178,7 @@ public class MainActivity extends Activity implements OnSeekBarChangeListener, O
 		
 		servoRateBar.setProgress(rateProgress(servoRate));
 		throttleRateBar.setProgress(rateProgress(throttleRate));
+		lowPassFilterBar.setProgress(filterSensivityToProgress());
 		
 		mInitAccelerometer = true;
         mSensorManager.registerListener(this, mAccelerometer, SensorManager.SENSOR_DELAY_GAME);
@@ -186,6 +187,7 @@ public class MainActivity extends Activity implements OnSeekBarChangeListener, O
         
         IntentFilter filter = new IntentFilter(BluetoothLinkService.RECEIVED_CMD);
         registerReceiver(myBTReceiver, filter);
+        btServiceBind();
 	}
 	
 	@Override
@@ -214,6 +216,9 @@ public class MainActivity extends Activity implements OnSeekBarChangeListener, O
             LocalBinder binder = (LocalBinder) service;
             mService = binder.getService();
             mBound = true;
+            
+            //send tick to wake up arduino battery monitor (just in case when service is up and running already)
+            sendData(".;");
         }
 
         @Override
@@ -227,6 +232,26 @@ public class MainActivity extends Activity implements OnSeekBarChangeListener, O
     	if(mBound)
     		mService.sendData(data);
     }
+    
+    
+	private int rateProgress(double rateValue) {
+		return (int)((rateValue - 1) * 10);
+	}
+	
+	private double rateValue(int progress) {
+		return (progress / 10.0d) + 1;
+	}
+	
+	
+	private int filterSensivityToProgress() {	
+		int progress = (int) (filterSensivity * 100); 
+		if(progress > lowPassFilterBar.getMax())
+			progress = lowPassFilterBar.getMax();
+		else if(progress < 0)
+			progress = 0;
+		
+		return progress;
+	}
 	
     public int calculateServoProg(int  angleValue) {
         int prg=Math.round((angleValue-angleMin)*1000.0f/(angleMax - angleMin));
@@ -399,8 +424,8 @@ public class MainActivity extends Activity implements OnSeekBarChangeListener, O
 	
 	
 	private void btServiceBind() {
-		
-		
+		Intent istart = new Intent(this, BluetoothLinkService.class);
+		bindService(istart, mConnection, BIND_AUTO_CREATE);
 	}
 	
 	private void btServiceUnbind() {
@@ -420,24 +445,20 @@ public class MainActivity extends Activity implements OnSeekBarChangeListener, O
 	        return true;
 	    case R.id.connect:
 	    	Intent istart = new Intent(this, BluetoothLinkService.class);
-	    	startService(istart);
-	    	bindService(istart, mConnection, BIND_AUTO_CREATE);
+	    	if(!mBound)
+	    		btServiceBind();
+	    	startService(istart);    	
 	    	return true;
 	    case R.id.disconnect:
+	    	btServiceUnbind();
 	    	Intent istop = new Intent(this, BluetoothLinkService.class);
 	    	stopService(istop);
-	    	btServiceUnbind();
 	    	return true;
 	    default:
 	        return super.onOptionsItemSelected(item);
 	    }
 	}
 
-	private void calculateAngle(double[] normVector, double[] outAngle) {
-		outAngle[0] = Math.toDegrees(Math.asin(normVector[0]));
-		outAngle[1] = Math.toDegrees(Math.asin(normVector[1]));
-		outAngle[2] = Math.toDegrees(Math.asin(normVector[2]));
-	}
 	
 	private void fullStop() {
 		mDriving=false;

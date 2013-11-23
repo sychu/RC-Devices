@@ -39,7 +39,7 @@ public class BluetoothLinkService extends Service {
 	public static final String RECEIVED_CMD = "pl.apcode.rcdevices.communication.RECEIVED_CMD";
 	
 	private Looper mServiceLooper;
-	private BluetoothLinkServiceHandler mServiceHandler;
+	private BluetoothLinkServiceHandler mServiceHandler = null;
 	private final IBinder mBinder = new LocalBinder();
 
     /**
@@ -56,32 +56,42 @@ public class BluetoothLinkService extends Service {
 	
 	@Override
 	public void onCreate() {
-		Log.d(tag, "onCreate");
-		
-		HandlerThread thread = new HandlerThread("BluetoothLinkService",
-	            Process.THREAD_PRIORITY_DEFAULT);
-	    thread.start();
-	    
-	    mServiceLooper = thread.getLooper();
-	    mServiceHandler = new BluetoothLinkServiceHandler(mServiceLooper, getApplicationContext());
-	    
-	    
-	    startForeground(
-	    		BluetoothLinkServiceHandler.NotificationID, 
-	    		mServiceHandler.createNotification(
-	    				R.drawable.ic_stat_notify_btdisconnected, 
-	    				null, 
-	    				R.string.btlink_connecting)); 
-	    
-	    
+		EventLogger.d(tag, "onCreate");
 		super.onCreate();
 	}
+	
+	synchronized private void startInForeground() {
+		if(mServiceHandler == null) {
+			EventLogger.d(tag, "Starting service in foreground");
+			HandlerThread thread = new HandlerThread("BluetoothLinkService",  Process.THREAD_PRIORITY_DEFAULT);
+		    thread.start();
+		    
+		    mServiceLooper = thread.getLooper();
+		    mServiceHandler = new BluetoothLinkServiceHandler(mServiceLooper, getApplicationContext());
+		    
+		    
+		    startForeground(
+		    		BluetoothLinkServiceHandler.NotificationID, 
+		    		mServiceHandler.createNotification(
+		    				R.drawable.ic_stat_notify_btdisconnected, 
+		    				null, 
+		    				R.string.btlink_connecting)); 
+		} 
+			
+		Message msg= mServiceHandler.obtainMessage(BluetoothLinkServiceHandler.MsgType.CONNECT);
+		msg.sendToTarget();			
+	}
+	
 	
 	@Override
 	public int onStartCommand(Intent intent, int flags, int startId) {
 		Log.d(tag, "onStartCommand");
-		Message msg= mServiceHandler.obtainMessage(BluetoothLinkServiceHandler.MsgType.CONNECT);
-		msg.sendToTarget();
+		if(mServiceHandler == null) 
+			startInForeground();
+		else {
+			Message msg= mServiceHandler.obtainMessage(BluetoothLinkServiceHandler.MsgType.CONNECT);
+			msg.sendToTarget();
+		}
 		return START_STICKY;
 	}
 	
@@ -96,15 +106,19 @@ public class BluetoothLinkService extends Service {
 	@Override
 	public void onDestroy() {
 		Log.d(tag, "onDestroy");
-		mServiceHandler.quitGently();
-		stopForeground(true);
+		if(mServiceHandler!= null) {
+			mServiceHandler.quitGently();
+			stopForeground(true);
+		}
 		super.onDestroy();
 	}
 	
 	
 	public void sendData(String data) {
-		Message msg=mServiceHandler.obtainMessage(BluetoothLinkServiceHandler.MsgType.SEND, data);
-		msg.sendToTarget();
+		if(mServiceHandler != null) {
+			Message msg=mServiceHandler.obtainMessage(BluetoothLinkServiceHandler.MsgType.SEND, data);
+			msg.sendToTarget();
+		}
 	}
 	
 
